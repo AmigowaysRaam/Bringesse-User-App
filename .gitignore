@@ -1,0 +1,43 @@
+# Node.js
+node_modules/
+
+# React Native
+android/.gradle/
+android/app/build/
+android/build/
+ios/Pods/
+ios/build/
+ios/.vscode/
+
+# React Native Packager
+.expo/
+.expo-shared/
+
+# macOS
+.DS_Store
+
+# Log files
+*.log
+
+# Watchman
+.watchmanconfig
+
+# npm logs
+npm-debug.log*
+
+# Yarn logs
+yarn-debug.log*
+yarn-error.log*
+
+# JetBrains IDEs (IntelliJ, WebStorm, etc.)
+.idea/
+
+# VS Code
+.vscode/
+
+# Temporary files
+*.swp
+*.swo
+
+# Bundle files
+*.bundle

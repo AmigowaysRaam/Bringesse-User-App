@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "989733009995",
+    "project_id": "bringessedeliverypartner",
+    "storage_bucket": "bringessedeliverypartner.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989733009995:android:1c21759346e7a484996bce",
+        "android_client_info": {
+          "package_name": "com.app.bringessedeliveryuserapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAebIczLvdHI1zy2Vz11oMoed6Zme2pg7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

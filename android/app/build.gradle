@@ -1,0 +1,96 @@
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+apply plugin: "com.google.gms.google-services"
+
+// Vector Icons font configuration
+project.ext.vectoricons = [
+    iconFontNames: [
+        'MaterialIcons.ttf',
+        'EvilIcons.ttf',
+        'Ionicons.ttf',
+        'MaterialCommunityIcons.ttf',
+        'Octicons.ttf',
+        'SimpleLineIcons.ttf',
+        'Zocial.ttf'
+    ]
+]
+apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
+
+// React Native autolink
+react {
+    autolinkLibrariesWithApp()
+}
+
+// Proguard toggle (disable for now)
+def enableProguardInReleaseBuilds = false
+
+// JavaScript engine choice (Hermes fallback)
+def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+
+android {
+    namespace "com.app.bringessedeliveryuserapp"
+    // Android SDK versions
+    ndkVersion rootProject.ext.ndkVersion
+    // buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        applicationId "com.app.bringessedeliveryuserapp"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 14
+        versionName "1.0.6"
+    }
+
+    // Signing configuration (using debug keystore for both)
+    signingConfigs {
+        debug {
+            storeFile file('bringessedeliveryuserapp.jks')
+            storePassword 'bringessedeliveryuserapp'
+            keyAlias 'bringessedeliveryuserapp'
+            keyPassword 'bringessedeliveryuserapp'
+        }
+        release {
+            // Using the same as debug for now
+            // signingConfig signingConfigs.debug
+            storeFile file('bringessedeliveryuserapp.jks')
+        storePassword 'bringessedeliveryuserapp'
+        keyAlias 'bringessedeliveryuserapp'
+        keyPassword 'bringessedeliveryuserapp'
+        }
+    }
+    // Build types
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+      signingConfig signingConfigs.release
+    minifyEnabled false
+    shrinkResources false
+    proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+dependencies {
+    // React Native core (version auto-managed)
+    implementation("com.facebook.react:react-android")
+
+    // Firebase Cloud Messaging
+    implementation 'com.google.firebase:firebase-messaging:24.1.0'
+
+    // Google Play Services (Location)
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+
+    // Razorpay Payment Gateway
+    implementation 'com.razorpay:checkout:1.6.33'
+
+    // JavaScript engine selection
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscFlavor
+    }
+}
