@@ -225,8 +225,9 @@ const MoreScreen = () => {
           {/* <SectionItem icon="archive-star" navigation={navigation} label="reviews" navigationPath='TermsAndCondtions' /> */}
           <SectionItem icon="shield-check" navigation={navigation} label="Terms and Conditions" navigationPath='TermsAndCondtions' />
           <SectionItem icon="trackpad-lock" navigation={navigation} label="Privacy and Policy" navigationPath='PrivacyandPolicy' />
+           {/* <SectionItem icon="cart-outline" navigation={navigation} label="My cart" navigationPath='Mycart' /> */}
           <ThemeSection />
-          <LangSection />
+          {/* <LangSection /> */}
           <LogoutSection />
           {/* App Version Info */}
           <View style={{ backgroundColor: COLORS[theme].viewBackground }}>

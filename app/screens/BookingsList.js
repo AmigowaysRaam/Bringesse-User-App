@@ -43,7 +43,7 @@ const BookingsList = ({ onModalToggle }) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
       const data = await fetchData('transport/bookinghistory', 'POST', payload, headers);
-
+      console.log(data, "bookinghistorybookinghistory")
       if (data?.status === true && Array.isArray(data?.data)) {
         setBookingData(data.data);
       } else {
@@ -196,13 +196,19 @@ const BookingsList = ({ onModalToggle }) => {
           <View style={styles.modalOverlay}  {...panResponder.panHandlers} >
             <View style={[styles.modalContent, { backgroundColor: COLORS[theme].viewBackground, borderColor: COLORS[theme].accent }]}>
               <ScrollView>
-                <Text style={[poppins.semi_bold.h5, { color: COLORS[theme].textPrimary }]}>
-                  Booking Details
-                </Text>
-
+                <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                  <Text style={[poppins.semi_bold.h5, { color: COLORS[theme].textPrimary }]}>
+                    Booking Details
+                  </Text>
+                  {
+                    selectedItem?.userReview?.ratings &&
+                    <Text style={[poppins.semi_bold.h5, { color: COLORS[theme].textPrimary, backgroundColor: COLORS[theme].cardBackground, paddingHorizontal: wp(1), borderRadius: wp(2) }]}>
+                      {selectedItem?.userReview?.ratings} ★
+                    </Text>
+                  }
+                </View>
                 <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Booking ID:</Text>
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>#{selectedItem?.uniqueId}</Text>
-
                 <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Vehicle:</Text>
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>
                   {selectedItem?.vehicle?.name} ({selectedItem?.categoryName})
@@ -221,8 +227,14 @@ const BookingsList = ({ onModalToggle }) => {
 
                 <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Created At:</Text>
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{formatDate(selectedItem?.createdAt)}</Text>
+                {
+                  selectedItem?.userReview.comment &&
+                  <>
+                    <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Review:</Text>
+                    <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.userReview.comment}</Text>
+                  </>
+                }
               </ScrollView>
-
               <View style={styles.modalActions}>
                 {selectedItem?.status !== 'completed' &&
                   selectedItem?.status != 'cancelled'
@@ -241,14 +253,14 @@ const BookingsList = ({ onModalToggle }) => {
                   <Text style={styles.closeButtonText}>Close</Text>
                 </Pressable>
               </View>
-              {selectedItem?.status === 'pending' || selectedItem?.status == 'accepted' ?
+              {/* {selectedItem?.status === 'pending' || selectedItem?.status == 'accepted' ?
                 <Pressable onPress={handleCancelOrder} style={{ height: hp(6), alignItems: "center", backgroundColor: "red", borderRadius: wp(2), marginVertical: wp(2), justifyContent: "center" }}>
                   <Text style={[poppins.semi_bold.h5, {
                     color: "#FFF"
                   }]}>Cancel</Text>
                 </Pressable>
                 : null
-              }
+              } */}
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -259,21 +271,15 @@ const BookingsList = ({ onModalToggle }) => {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingVertical: hp(2),
-    paddingBottom: hp(5),
-    gap: wp(3),
+    paddingVertical: hp(2), paddingBottom: hp(5), gap: wp(3),
     marginHorizontal: wp(3),
   },
   card: {
-    flexDirection: 'row',
-    padding: wp(3),
-    borderRadius: wp(2),
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
+    flexDirection: 'row', padding: wp(3),
+    borderRadius: wp(2), elevation: 2,
+    shadowColor: '#000', shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    marginBottom: wp(3),
+    shadowRadius: 4, marginBottom: wp(3),
   },
   iconContainer: {
     marginRight: wp(4),
@@ -281,66 +287,49 @@ const styles = StyleSheet.create({
   },
   vehicleImage: {
     width: wp(12),
-    height: wp(12),
-    borderRadius: wp(2),
+    height: wp(12), borderRadius: wp(2),
   },
   textContainer: {
     flex: 1,
   },
   loader: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOverlay: {
+    justifyContent: 'center', alignItems: 'center',
+  }, modalOverlay: {
     flex: 1,
-    backgroundColor: '#00000099',
-    justifyContent: 'flex-end',
+    backgroundColor: '#00000099', justifyContent: 'flex-end',
   },
   modalContent: {
-    borderTopLeftRadius: wp(3),
-    borderTopRightRadius: wp(3),
-    padding: wp(5),
-    maxHeight: hp(80),
+    borderTopLeftRadius: wp(3), borderTopRightRadius: wp(3), padding: wp(5), maxHeight: hp(80),
     borderTopWidth: wp(0.8), marginHorizontal: wp(0.8)
   },
   modalLabel: {
     marginTop: hp(1.5),
-    fontSize: wp(3.5),
-    fontFamily: poppins.medium.h8.fontFamily,
+    fontSize: wp(3.5), fontFamily: poppins.medium.h8.fontFamily,
   },
   modalValue: {
-    fontSize: wp(4),
-    fontFamily: poppins.semi_bold.h7.fontFamily,
+    fontSize: wp(4), fontFamily: poppins.semi_bold.h7.fontFamily,
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'row', justifyContent: 'space-between',
     marginTop: hp(3),
   },
   trackButton: {
-    flex: 1,
-    paddingVertical: hp(1.5),
-    borderRadius: wp(2),
-    marginRight: wp(2),
+    flex: 1, paddingVertical: hp(1.5),
+    borderRadius: wp(2), marginRight: wp(2),
     alignItems: 'center',
   },
   trackButtonText: {
-    color: '#fff',
-    fontFamily: poppins.semi_bold.h7.fontFamily,
+    color: '#fff', fontFamily: poppins.semi_bold.h7.fontFamily,
     fontSize: wp(4),
   },
   closeButton: {
-    flex: 1,
-    backgroundColor: '#ccc',
-    paddingVertical: hp(1.5),
-    borderRadius: wp(2),
-    marginLeft: wp(2),
-    alignItems: 'center',
+    flex: 1, backgroundColor: '#ccc',
+    paddingVertical: hp(1.5), borderRadius: wp(2),
+    marginLeft: wp(2), alignItems: 'center',
   },
   closeButtonText: {
-    color: '#333',
-    fontFamily: poppins.semi_bold.h7.fontFamily,
+    color: '#333', fontFamily: poppins.semi_bold.h7.fontFamily,
     fontSize: wp(4),
   },
 });

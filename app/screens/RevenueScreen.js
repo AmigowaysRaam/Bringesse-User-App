@@ -16,7 +16,7 @@ const RevenueScreen = () => {
   const accessToken = useSelector(state => state.Auth.accessToken);
     return (
     <GestureHandlerRootView style={{ flex: 1, padding: wp(1) }}>
-      <HeaderBar title={t('Store') || 'Store'} showBackButton={false} />
+      <HeaderBar title={t('Store') || 'Store'} showBackArrow={true} />
       <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
         {/* Total Revenue Card */}
         <Image source={IMAGE_ASSETS?.mantainceModde} style={{ width: wp(80), height: wp(50), alignSelf: "center" }} />

@@ -15,6 +15,13 @@ import ChangePassword from '../screens/tabs/Edit-profile/ChangePassword';
 import TermsandCondtions from '../screens/TermsandCondtions';
 import PrivacyandPolicy from '../screens/PrivacyandPolicy';
 import TrackBookings from '../screens/TrackBookings';
+import ProductListScreen from '../screens/tabs/productList';
+import CategoryStore from '../screens/tabs/category/categorydetails';
+import CartList from '../screens/mycart';
+import SelectLocationScreen from '../screens/select_location';
+import AddAddressScreen from '../screens/add_address';
+import RevenueScreen from '../screens/RevenueScreen';
+
 const Stack = createNativeStackNavigator();
 const MyTheme = {
   dark: true,
@@ -52,6 +59,14 @@ function InitialRouter() {
         <Stack.Screen name="TermsAndCondtions" component={TermsandCondtions} />
         <Stack.Screen name="PrivacyandPolicy" component={PrivacyandPolicy} />
         <Stack.Screen name="TrackBookings" component={TrackBookings} />
+        <Stack.Screen name="ProductList" component={ProductListScreen} />
+        <Stack.Screen name="CategoryDetails" component={CategoryStore} />
+        <Stack.Screen name="Mycart" component={CartList} />
+        <Stack.Screen name="SelectLocation" component={SelectLocationScreen} />
+        <Stack.Screen name="AddAddress" component={AddAddressScreen} />
+        <Stack.Screen name="RevenueScreen" component={RevenueScreen} />
+
+
       </Stack.Navigator>
     </NavigationContainer>
   );

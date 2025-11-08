@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, StyleSheet, ActivityIndicator, PermissionsAndroid,
-  Platform, Alert, Image, Text,
+  Platform, Alert, Image, Text, TouchableOpacity,
+  ToastAndroid,
 } from 'react-native';
 import { hp, wp } from '../resources/dimensions';
 import { COLORS } from '../resources/colors';
@@ -19,6 +20,8 @@ import { IMAGE_ASSETS } from '../resources/images';
 import io from 'socket.io-client';  // Import socket.io-client
 import { poppins } from '../resources/fonts';
 import { useNavigation } from '@react-navigation/native';
+import LottieView from 'lottie-react-native';
+import ReviewModal from './ReviewModal';
 
 const SOCKET_URL = 'https://www.bringesse.com:3000/';
 const TrackBookings = ({ route }) => {
@@ -27,16 +30,17 @@ const TrackBookings = ({ route }) => {
   const profileDetails = useSelector(state => state.Auth.profileDetails);
   const mapRef = useRef(null);
   const { selectedItem } = route.params;
-  const [location, setLocation] = useState(null); // This will be set to the pickupLocation
+  const [location, setLocation] = useState(null);
   const [mapLoading, setMapLoading] = useState(false);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [bookingData, setBookingData] = useState(null);
   const [destinationCoords, setDestinationCoords] = useState(null);
-  const [socket, setSocket] = useState(null); // State for socket
-  const [bookingStatus, setBookingStatus] = useState(null); // Store booking status
-  const [loadingStatus, setLoadingStatus] = useState(false); // Loading state for booking status
+  const [socket, setSocket] = useState(null);
+  const [bookingStatus, setBookingStatus] = useState(null);
+  const [loadingStatus, setLoadingStatus] = useState(false);
   const navigation = useNavigation();
-  // Request permission for location (Android)
+  const [reviewModal, setreviewModal] = useState(false);
+
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
       return true;
@@ -47,7 +51,6 @@ const TrackBookings = ({ route }) => {
     return granted === PermissionsAndroid.RESULTS.GRANTED;
   };
 
-  // Fetch the route between current location and destination using polyline
   const fetchRoute = async () => {
     try {
       if (location && destinationCoords) {
@@ -73,86 +76,81 @@ const TrackBookings = ({ route }) => {
     }
   };
 
-  // Fetch booking details
   const getBookingsDetails = async () => {
-    // Alert.alert(selectedItem?._id)
     const payload = {
       booking_id: selectedItem?._id,
+      user_id: profileDetails?.user_id,
     };
+    // Alert.alert(JSON.stringify( profileDetails?.user_id,null,2));
     try {
       const responseData = await fetchData('/transport/bookingdetail', 'POST', payload, null);
-      console?.log(responseData, "responseData")
       if (responseData?.status === true) {
         const booking = responseData?.data[0];
-        console.log(booking, "bookingData")
-        const { driver, status, vehicle, otp, pickupLocation } = booking;
+        const { driver, status, vehicle, otp, pickupLocation, completeOtp } = booking;
 
-        // Extracting the pickup location from the coordinates array
         const pickLocation = pickupLocation?.coordinates;
         if (pickLocation) {
           setLocation({
-            latitude: pickLocation[1], // Latitude is the second item in the array
-            longitude: pickLocation[0], // Longitude is the first item in the array
+            latitude: pickLocation[1],
+            longitude: pickLocation[0],
             latitudeDelta: 0.0922,
             longitudeDelta: 0.0421,
           });
         }
-
         const currentLocation = driver?.currentLocation?.coordinates;
-
         if (currentLocation) {
           setDestinationCoords({
-            latitude: currentLocation[1], // Latitude is the second item in the array
-            longitude: currentLocation[0], // Longitude is the first item in the array
+            latitude: currentLocation[1],
+            longitude: currentLocation[0],
           });
         }
-
         const extractedData = {
           driverImage: driver.profileImage,
           driverPhone: driver.phone,
           driverName: driver.name,
           bookingStatus: status,
           vehicleNumber: driver.vehicleNumber,
-          otp: otp
+          otp: otp,
+          completeOtp: completeOtp,
+          driver: driver
         };
-        setBookingData(extractedData); // Store the extracted data
-        setBookingStatus(status); // Store booking status
+        setBookingData(extractedData);
+        setBookingStatus(status);
       } else {
-        setBookingData(null); // If no data, set null
+        setBookingData(null);
       }
     } catch (err) {
       console.error('Booking fetch error:', err);
     }
   };
 
-  // Call location and booking details functions on component mount
   useEffect(() => {
-    getBookingsDetails();
     const socketConnection = io(SOCKET_URL);
     setSocket(socketConnection);
-    // Emit the joinBookingRoom event
-    const userType = profileDetails?.userType || 'user'; // Assuming userType is available from profileDetails
+    const userType = profileDetails?.userType || 'user';
     socketConnection.emit('joinBookingRoom', selectedItem?._id, userType);
-    // Handle socket events for location update and booking status update
+    getBookingsDetails();
     socketConnection.on('locationUpdate', (newLocation) => {
       if (newLocation) {
+        getBookingsDetails();
         setDestinationCoords({
           latitude: newLocation.latitude,
           longitude: newLocation.longitude,
         });
       }
     });
+
     socketConnection.on('bookingStatusUpdate', (data) => {
-      console.log('Booking status update received:', data);
       const { bookingId, status, driverInfo } = data;
-      console.log(`Booking status update for booking ID ${bookingId}:`, status, driverInfo);
-      if (status == 'accept') {
+      if (status === 'accept') {
         getBookingsDetails();
       }
+      if (status === 'accept') {
+        // getBookingsDetails();
+      }
       setBookingStatus(status);
-      // setLoadingStatus(false); // Stop the loader once the status is updated
     });
-    // Cleanup on unmount
+
     return () => {
       if (socketConnection) {
         socketConnection.disconnect();
@@ -161,19 +159,21 @@ const TrackBookings = ({ route }) => {
   }, []);
 
   useEffect(() => {
-    if (bookingStatus == 'completed') {
+    if (bookingStatus === 'completed') {
+      setreviewModal(true);
+    }
+    if (bookingStatus == 'cancelled') {
       navigation.goBack();
     }
+
   }, [bookingStatus]);
 
-  // Fetch the route after location update
   useEffect(() => {
     if (location && destinationCoords) {
-      fetchRoute(); // Fetch route whenever location and destination are both available
+      fetchRoute();
     }
   }, [location, destinationCoords]);
 
-  // Zoom map to show both markers when both locations available
   useEffect(() => {
     if (location && destinationCoords && mapRef.current) {
       mapRef.current.fitToCoordinates([location, destinationCoords], {
@@ -183,18 +183,48 @@ const TrackBookings = ({ route }) => {
     }
   }, [location, destinationCoords]);
 
+  // Cancel booking function
+
+  // const cancelBooking = () => {
+  //   if (socket && selectedItem?._id) {
+  //     socket.emit('cancelBooking', selectedItem?._id);
+  //     // Alert.alert(t('Booking canceled'));
+  //     ToastAndroid.show(t('Booking has been canceled'), ToastAndroid.SHORT);
+  //     navigation.goBack();  // Optionally, navigate back after cancellation
+  //   }
+  // };
+
+
+  const cancelBooking = async () => {
+    let payload = {
+      user_id: profileDetails?.user_id,
+      booking_id: selectedItem?._id
+    }
+    // setLoading(true)
+    try {
+      const data = await fetchData('transport/cancelbooking', 'POST', payload);
+      // Alert.alert(JSON.stringify(profileDetails, null, 2));
+      if (data?.status === true) {
+        // fetchBookings();
+        if (socket && selectedItem?._id) {
+          socket.emit('cancelBooking', selectedItem?._id);
+          // Alert.alert(t('Booking canceled'));
+          ToastAndroid.show(t('Booking has been canceled'), ToastAndroid.SHORT);
+          navigation.goBack();  // Optionally, navigate back after cancellation
+        }
+      } else {
+      }
+    } catch (err) {
+      console.error('cancelbooking fetch error:', err);
+    } finally {
+    }
+  };
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
       <HeaderBar title={t('TrackBookings') || 'TrackBookings'} showBackArrow={true} />
       <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
-        {/* <Image
-          source={IMAGE_ASSETS?.scooter}
-          style={{
-            width: wp(10),
-            height: wp(10),
-            borderRadius: wp(5),
-          }}
-        /> */}
+
         {mapLoading || loadingStatus ? (
           <View style={styles.loader}>
             <ActivityIndicator size="large" color={COLORS[theme].accent} />
@@ -206,9 +236,8 @@ const TrackBookings = ({ route }) => {
                 ref={mapRef}
                 style={styles.map}
                 initialRegion={location}
-                showsUserLocation={false} // We use custom marker
+                showsUserLocation={false}
               >
-                {/* Marker for pickup location */}
                 <Marker coordinate={location}>
                   <Image
                     source={{ uri: profileDetails?.user_image }}
@@ -219,8 +248,7 @@ const TrackBookings = ({ route }) => {
                     }}
                   />
                 </Marker>
-                {/* Marker for destination */}
-                <Marker coordinate={destinationCoords} >
+                <Marker coordinate={destinationCoords}>
                   <Image
                     source={IMAGE_ASSETS?.scooter}
                     style={{
@@ -233,20 +261,24 @@ const TrackBookings = ({ route }) => {
                     {bookingStatus}
                   </Text>
                 </Marker>
-
-                {/* Polyline for route */}
                 <Polyline coordinates={routeCoordinates} strokeWidth={4} strokeColor="blue" />
               </MapView>
-            ) :
-              <Image
-                source={IMAGE_ASSETS.delivery_boy_image}
-                style={{
-                  width: wp(70),
-                  height: wp(80),
-                  alignSelf: "center"
-                }}
-              />
-            }
+            ) : (
+              <View style={styles.centerContainer}>
+                <Text style={[poppins.regular.h5, { color: COLORS[theme].primary, marginTop: hp(1) }]}>
+                  {t('Looking for nearby drivers...') || 'Looking for nearby drivers...'}
+                </Text>
+                <LottieView
+                  source={IMAGE_ASSETS.delivery_search}
+                  autoPlay
+                  loop
+                  style={{
+                    width: wp(90),
+                    height: wp(80),
+                  }}
+                />
+              </View>
+            )}
           </>
         )}
       </View>
@@ -258,13 +290,36 @@ const TrackBookings = ({ route }) => {
           bookingStatus={bookingStatus}
           vehicleNumber={bookingData.vehicleNumber}
           otp={bookingData?.otp}
+          completeOtp={bookingData?.completeOtp}
         />
       )}
+      {/* Cancel button visible if the status is "pending" */}
+      {bookingStatus !== 'cancelled' && (
+        <TouchableOpacity style={styles.cancelButton} onPress={cancelBooking}>
+          <Text style={styles.cancelButtonText}>{t('Cancel Booking')}</Text>
+        </TouchableOpacity>
+      )}
+      {/* )} */}
+      <ReviewModal
+        visible={reviewModal}
+        onClose={() => {
+          setreviewModal(false);
+          navigation.goBack();
+        }}
+        bookingId={selectedItem?._id}
+        driverName={bookingData?.driverName}
+        driver={bookingData?.driver}
+      />
     </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loader: {
     flex: 1,
     justifyContent: 'center',
@@ -272,6 +327,18 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  cancelButton: {
+    backgroundColor: '#FF0000',
+    padding: wp(4),
+    borderRadius: wp(2),
+    alignItems: 'center',
+    marginHorizontal: hp(2),
+  },
+  cancelButtonText: {
+    color: COLORS.white,
+    fontSize: wp(4.5),
+    fontWeight: 'bold',
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image,
   ActivityIndicator, TextInput, FlatList, Keyboard,
@@ -12,7 +12,8 @@ import { COLORS } from '../../resources/colors';
 import { useTheme } from '../../context/ThemeContext';
 import { IMAGE_ASSETS } from '../../resources/images';
 
-const GOOGLE_API_KEY = 'AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc'; // Replace with your key
+// 🔑 Replace this with your own Google Maps API Key
+const GOOGLE_API_KEY = 'AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc';
 
 const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
   const [location, setLocation] = useState(null);
@@ -20,53 +21,53 @@ const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [mapLoading, setMapLoading] = useState(true);
 
-  // Search states
   const [searchText, setSearchText] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-  // Request permission for location
+  const mapRef = useRef(null);
+  const { theme } = useTheme();
+
+  // 🔹 Request location permission
   const requestLocationPermission = async () => {
-    if (Platform.OS === 'ios') {
-      return true;
-    }
+    if (Platform.OS === 'ios') return true;
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
     );
     return granted === PermissionsAndroid.RESULTS.GRANTED;
   };
 
-  // Get current location
+  // 🔹 Get current location
   const getCurrentLocation = async () => {
     const hasPermission = await requestLocationPermission();
-    if (hasPermission) {
-      Geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setLocation({
-            latitude,
-            longitude,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          });
-          getAddressFromCoords(latitude, longitude);
-          setMapLoading(false);
-        },
-        (error) => {
-          Alert.alert('Error', 'Failed to get current location');
-          setMapLoading(false);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-      );
-    } else {
+    if (!hasPermission) {
       Alert.alert('Permission Denied', 'Location permission is required.');
       setMapLoading(false);
+      return;
     }
+
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const region = {
+          latitude,
+          longitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        };
+        setLocation(region);
+        getAddressFromCoords(latitude, longitude);
+        setMapLoading(false);
+      },
+      (error) => {
+        Alert.alert('Error', 'Failed to get current location');
+        setMapLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
   };
 
-  const { theme } = useTheme();
-
-  // Reverse geocode to get address from coords
+  // 🔹 Convert coords → address
   const getAddressFromCoords = async (latitude, longitude) => {
     setIsLoading(true);
     try {
@@ -77,6 +78,8 @@ const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
       if (data.status === 'OK') {
         const formattedAddress = data.results[0]?.formatted_address || 'Unknown location';
         setAddress(formattedAddress);
+      } else {
+        setAddress('Failed to fetch address');
       }
     } catch (error) {
       setAddress('Failed to fetch address');
@@ -85,7 +88,7 @@ const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
     }
   };
 
-  // Fetch autocomplete suggestions from Google Places API
+  // 🔹 Fetch autocomplete suggestions
   const fetchSuggestions = async (input) => {
     if (input.length < 3) {
       setSuggestions([]);
@@ -94,7 +97,9 @@ const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
     setLoadingSuggestions(true);
     try {
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(input)}&key=${GOOGLE_API_KEY}`
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          input
+        )}&key=${GOOGLE_API_KEY}`
       );
       const data = await response.json();
       if (data.status === 'OK') {
@@ -109,72 +114,73 @@ const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
     }
   };
 
-  // Fetch place details (coordinates) on suggestion select
   const fetchPlaceDetails = async (placeId) => {
     try {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${GOOGLE_API_KEY}`
       );
       const data = await response.json();
+  
       if (data.status === 'OK') {
         const loc = data.result.geometry.location;
-        const newLocation = {
+        const formattedAddress = data.result.formatted_address;
+  
+        const newRegion = {
           latitude: loc.lat,
           longitude: loc.lng,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
         };
-        setLocation(newLocation);
-        setAddress(data.result.formatted_address);
+  
+        setLocation(newRegion); // update location state
+        setAddress(formattedAddress);
+        setSearchText(formattedAddress);
         setSuggestions([]);
-        setSearchText(data.result.formatted_address);
+        // Animate map to new location
+        if (mapRef.current) {
+          mapRef.current.animateToRegion(newRegion, 500); // 500ms animation
+        }
+        // Trigger address fetch asynchronously
+        getAddressFromCoords(loc.lat, loc.lng);
+  
         Keyboard.dismiss();
+      } else {
+        Alert.alert('Error', 'Failed to fetch place details');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to fetch place details');
     }
   };
-
-  // Handle marker drag end
+  
+  // 🔹 Marker drag end
   const handleMarkerDragEnd = (e) => {
     const { latitude, longitude } = e.nativeEvent.coordinate;
-    setLocation((prev) => ({
-      ...prev,
-      latitude,
-      longitude,
-    }));
+    const newLoc = { ...location, latitude, longitude };
+    setLocation(newLoc);
     getAddressFromCoords(latitude, longitude);
   };
 
-  // On search text change
+  // 🔹 Confirm location
+  const handleConfirm = () => {
+    if (location) {
+      onConfirm(location, address, type);
+      onDismiss();
+      setSearchText('');
+      setSuggestions([]);
+      setAddress('');
+      setLocation(null);
+    }
+  };
+
+  // 🔹 Handle text input
   const handleSearchChange = (text) => {
     setSearchText(text);
     fetchSuggestions(text);
   };
 
-  // On submit button pressed to get address of current marker
-  const handleSubmit = () => {
-    if (location) {
-      getAddressFromCoords(location.latitude, location.longitude);
-    }
-  };
-
-  // Confirm button pressed
-  const handleConfirm = () => {
-    if (location) {
-      onConfirm(location, address, type);
-      onDismiss();
-      setLocation(null);
-      setSearchText('');
-      setSuggestions([]);
-      setAddress('');
-    }
-  };
-
   useEffect(() => {
-    if (visible) {
-      getCurrentLocation();
-    } else {
+    if (visible) getCurrentLocation();
+    else {
       setSearchText('');
       setSuggestions([]);
       setAddress('');
@@ -184,145 +190,112 @@ const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
   }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onDismiss}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.overlay}>
             <View style={[styles.modalContainer, { backgroundColor: COLORS[theme].background }]}>
-              {/* Search Input on top */}
-              <View
-                style={{
-                  position: 'relative',
-                  top: wp(6),
-                  width: '100%',
-                  zIndex: 20,
-                  paddingHorizontal: wp(2),
-                }}
-              >
-                <View style={{ position: 'relative' }}>
-                  <TextInput
-                    style={{
-                      backgroundColor: '#f9f9f9',
-                      borderRadius: wp(4),
-                      height: hp(6),
-                      paddingHorizontal: wp(4), // add padding right for clear button space
-                      fontSize: wp(4),
-                      color: '#5d5d5d',
-                      borderWidth: wp(0.4),
+              {/* 🔍 Search bar */}
+              <View style={styles.searchContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search location"
+                  value={searchText}
+                  onChangeText={handleSearchChange}
+                  placeholderTextColor="#999"
+                />
+                {searchText.length > 0 && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSearchText('');
+                      setSuggestions([]);
+                      Keyboard.dismiss();
                     }}
-                    placeholder="Search location"
-                    value={searchText}
-                    onChangeText={handleSearchChange}
-                    underlineColorAndroid="transparent"
-                    placeholderTextColor={"#000"}
-                  />
-                  {searchText.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => {
-                        setSearchText('');
-                        // setSuggestions([]);
-                        // setAddress('');
-                        // setLocation(null);
-                        Keyboard.dismiss();
-                      }}
-                      style={{
-                        position: 'absolute',
-                        right: wp(1),
-                        top: '13%',
-                        transform: [{ translateY: -12 }],
-                        height: wp(11),
-                        width: wp(11),
-                        // borderRadius: 12,
-                        // backgroundColor: '#ccc',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        color: "#000"
-                      }}
-                      hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
-                    >
-                      <Text style={{ color: '#000', fontSize: wp(11), fontWeight: 'bold' }}>×</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {loadingSuggestions && (
-                  <ActivityIndicator size="small" color={COLORS[theme].accent} style={{ marginVertical: 4 }} />
+                    style={styles.clearBtn}
+                  >
+                    <Text style={[styles.clearText, {
+                      color: COLORS[theme].primary
+                    }]}>×</Text>
+                  </TouchableOpacity>
                 )}
+                {loadingSuggestions && <ActivityIndicator size="small" color="#666" />}
                 {suggestions.length > 0 && (
                   <FlatList
                     keyboardShouldPersistTaps="handled"
                     data={suggestions}
                     keyExtractor={(item) => item.place_id}
-                    style={{
-                      maxHeight: hp(50),
-                      backgroundColor: 'white',
-                      borderRadius: 8,
-                      marginTop: wp(1),
-                    }}
+                    style={styles.suggestionList}
                     renderItem={({ item }) => (
                       <TouchableOpacity
+                        style={styles.suggestionItem}
                         onPress={() => fetchPlaceDetails(item.place_id)}
-                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }}
                       >
-                        <Text style={{color:"#000"}}>{item.description}</Text>
+                        <Text style={styles.suggestionText}>{item.description}</Text>
                       </TouchableOpacity>
                     )}
                   />
                 )}
               </View>
-
+              {/* 🗺 Map Section */}
               {mapLoading ? (
-                <ActivityIndicator size="medium" color={COLORS[theme].accent} style={styles.loader} />
+                <ActivityIndicator size="large" color={COLORS[theme].accent} style={styles.loader} />
               ) : (
-                <>
-                  {location && (
-                    <>
-                      <MapView
-                        style={styles.map}
-                        region={location}
-                        showsUserLocation
-                        onRegionChangeComplete={(region) => setLocation(region)}
+                location && (
+                  <>
+                    <MapView
+                      ref={mapRef}
+                      style={styles.map}
+                      // region={location}
+                      initialRegion={location}
+                      showsUserLocation
+                      onRegionChangeComplete={(region) => setLocation(region)}
+                      onMapReady={() => setMapLoading(false)} // helps hide loader only when map is ready
+                      moveOnMarkerPress={false}  
+                    >
+                      <Marker
+                        coordinate={{
+                          latitude: location.latitude,
+                          longitude: location.longitude,
+                        }}
+                        draggable
+                        onDragEnd={handleMarkerDragEnd}
                       >
-                        <Marker
-                          coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-                          draggable
-                          onDragEnd={handleMarkerDragEnd}
-                        >
-                          <Image
-                            source={IMAGE_ASSETS?.ic_pickup_marker}
-                            style={{ width: wp(12), height: wp(12), resizeMode: 'contain' }}
-                          />
-                        </Marker>
-                      </MapView>
+                        <Image
+                          source={IMAGE_ASSETS.ic_pickup_marker}
+                          style={styles.markerIcon}
+                        />
+                      </Marker>
+                    </MapView>
 
-                      <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                        <Text style={styles.submitText}>Get Address</Text>
-                      </TouchableOpacity>
+                    <TouchableOpacity style={styles.submitButton} onPress={() => getAddressFromCoords(location.latitude, location.longitude)}>
+                      <Text style={styles.submitText}>Get Address</Text>
+                    </TouchableOpacity>
 
-                      {address !== '' && (
-                        <View style={styles.addressContainer}>
-                          <Text style={styles.addressText}>{isLoading ? 'Loading address...' : address}</Text>
-                        </View>
-                      )}
-
-                      <View style={styles.footer}>
-                        <TouchableOpacity
-                          style={[styles.confirmButton, { backgroundColor: COLORS[theme].accent }]}
-                          onPress={handleConfirm}
-                        >
-                          <Text style={styles.confirmText}>Confirm Location</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.cancelButton} onPress={onDismiss}>
-                          <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
+                    {address !== '' && (
+                      <View style={styles.addressContainer}>
+                        <Text numberOfLines={2} style={styles.addressText}>
+                          {isLoading ? 'Loading address...' : address}
+                        </Text>
                       </View>
-                    </>
-                  )}
-                </>
+                    )}
+
+                    {/* ✅ Footer Buttons */}
+                    <View style={styles.footer}>
+                      <TouchableOpacity
+                        style={[styles.confirmButton, { backgroundColor: COLORS[theme].accent }]}
+                        onPress={handleConfirm}
+                      >
+                        <Text style={styles.confirmText}>Confirm Location</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.cancelButton} onPress={onDismiss}>
+                        <Text style={styles.cancelText}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )
               )}
             </View>
           </View>
@@ -332,6 +305,7 @@ const SelectLocation = ({ visible, onDismiss, onConfirm, type }) => {
   );
 };
 
+// 🎨 Styles
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
@@ -340,22 +314,65 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: wp(100),
-    borderRadius: 10,
-    padding: wp(2),
     alignItems: 'center',
     height: hp(100),
+  },
+  searchContainer: {
+    position: 'absolute',
+    top: wp(6),
+    width: '95%',
+    zIndex: 20,
+  },
+  searchInput: {
+    backgroundColor: '#fff',
+    borderRadius: wp(4),
+    height: hp(6),
+    paddingHorizontal: wp(4),
+    fontSize: wp(4),
+    color: '#000',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    width: '90%',
+  },
+  clearBtn: {
+    position: 'absolute',
+    right: wp(3),
+  },
+  clearText: {
+    fontSize: wp(8),
+  },
+  suggestionList: {
+    maxHeight: hp(40),
+    backgroundColor: '#fff',
+    marginTop: wp(2),
+    borderRadius: 8,
+  },
+  suggestionItem: {
+    padding: wp(2),
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  suggestionText: {
+    color: '#000',
+    fontSize: wp(3.6),
   },
   map: {
     width: '100%',
     height: hp(60),
+    marginTop: hp(9),
+  },
+  markerIcon: {
+    width: wp(12),
+    height: wp(12),
+    resizeMode: 'contain',
   },
   submitButton: {
     backgroundColor: '#007BFF',
-    padding: 15,
-    marginTop: 20,
+    padding: 14,
+    marginTop: 10,
     borderRadius: 10,
     alignItems: 'center',
-    width: '100%',
+    width: '95%',
   },
   submitText: {
     color: '#fff',
@@ -367,20 +384,20 @@ const styles = StyleSheet.create({
     padding: 10,
     marginTop: 10,
     borderRadius: 8,
-    width: '100%',
+    width: '95%',
   },
   addressText: {
-    fontSize: 14,
+    fontSize: wp(3),
     color: '#333',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
-    marginTop: 20,
+    width: '95%',
+    marginTop: 15,
   },
   confirmButton: {
-    padding: wp(4),
+    padding: 15,
     borderRadius: 10,
     width: '48%',
     alignItems: 'center',
@@ -393,11 +410,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   confirmText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
   },
   cancelText: {
-    color: 'white',
+    color: '#fff',
     fontWeight: 'bold',
   },
   loader: {

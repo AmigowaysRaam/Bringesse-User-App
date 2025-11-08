@@ -36,7 +36,7 @@ const OrdersScreen = () => {
   const [locaTYpe, setLocType] = useState('');
   const [locationmodalVisible, setLocationModalVisible] = useState(false);
   const [otherModal, setotherModalVisible] = useState(false);
-
+  const [enableDropLocation, setEnableDropLocation] = useState(true);
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [confirmModal, setConfirmModal] = useState(false);
   const [driverInfo, setDriverInfo] = useState(null);
@@ -80,6 +80,8 @@ const OrdersScreen = () => {
         vehicleType: null,
         vehicleTypeId: null,  // Reset vehicleType ID when a new category is selected
       }));
+      setEnableDropLocation(item?.enableDropLocation ?? true);
+
       setVehicleTypes(
         item?.vehicles?.map(service => ({
           label: service.name,
@@ -118,7 +120,7 @@ const OrdersScreen = () => {
   };
 
   const getHomePageData = async () => {
-    setLoading(true);  // Show loader when fetching data
+    setLoading(true);
     try {
       const data = await fetchData('getvehiclecategories', 'GET', null, null);
       setVehcileCatgory(
@@ -126,20 +128,22 @@ const OrdersScreen = () => {
           label: category.name,
           value: category._id,
           vehicles: category?.vehicles,
+          enableDropLocation: category?.enableDropLocation ?? true,
         })) || []
       );
     } catch (error) {
       console.error('Error fetching home page data:', error);
     } finally {
-      setLoading(false);  // Hide loader after data is fetched
+      setLoading(false);
     }
   };
+
 
   const getDriversData = async () => {
     // console.log('FormSubmit', formValues);
 
     setLoading(true);  // Show loader when fetching data
-    if (!formValues?.vehicleCategoryId || !formValues?.vehicleTypeId || !formValues?.pickupLocation?.lat || !formValues?.dropLocation.lat) {
+    if (!formValues?.vehicleCategoryId || !formValues?.vehicleTypeId || !formValues?.pickupLocation?.lat) {
       setLoading(false);  // Show loader when fetching data
       showMessage({
         message: 'All Fields Required',
@@ -155,9 +159,9 @@ const OrdersScreen = () => {
       currentLoc: formValues?.pickupLocation?.location,
       current_lat: formValues?.pickupLocation?.lat,
       current_lon: formValues?.pickupLocation?.lon,
-      drop_location: formValues?.dropLocation?.location,
+      drop_location: formValues?.dropLocation?.location ?? '',
       drop_lat: formValues?.dropLocation?.lat,
-      drop_lon: formValues?.dropLocation?.lon,
+      drop_lon: formValues?.dropLocation?.lon ?? '',
     }
     try {
       const data = await fetchData('getdrivers', 'POST', payLoad, null);
@@ -208,7 +212,7 @@ const OrdersScreen = () => {
   );
 
   const navigation = useNavigation();
-
+  //enableDropLocation
   const handleBookNow = async () => {
     let payLoad = {
       user_id: profile?.user_id,
@@ -285,7 +289,6 @@ const OrdersScreen = () => {
     })
   ).current;
 
-
   return (
     <GestureHandlerRootView style={{ flex: 1, padding: wp(1) }}
       {...(!locationmodalVisible && !otherModal ? panResponder.panHandlers : {})}
@@ -359,22 +362,26 @@ const OrdersScreen = () => {
                       </View>
                     </TouchableOpacity>
                   </View>
-                  <View style={styles.section}>
-                    <Text style={[styles.sectionTitle, { color: COLORS[theme].textPrimary }]}>Drop Location <Text style={{ color: 'red' }}>*</Text></Text>
-                    <TouchableOpacity onPress={() => openLocationModal('drop')} style={styles.fieldContainer}>
-                      <View style={[styles.dropdown, { borderColor: COLORS[theme].textPrimary }]}>
-                        <Text style={[styles.dropdownText, { color: COLORS[theme].textPrimary }]}>
-                          {formValues?.dropLocation?.location || 'Select Drop Location'}
-                        </Text>
-                        <MaterialCommunityIcon
-                          style={{ marginHorizontal: hp(2), transform: [{ scaleX: -1 }] }}
-                          name={"truck-delivery"}
-                          size={wp(7)}
-                          color={COLORS[theme].textPrimary}
-                        />
-                      </View>
-                    </TouchableOpacity>
-                  </View>
+                  {enableDropLocation && (
+                    <View style={styles.section}>
+                      <Text style={[styles.sectionTitle, { color: COLORS[theme].textPrimary }]}>
+                        Drop Location <Text style={{ color: 'red' }}>*</Text>
+                      </Text>
+                      <TouchableOpacity onPress={() => openLocationModal('drop')} style={styles.fieldContainer}>
+                        <View style={[styles.dropdown, { borderColor: COLORS[theme].textPrimary }]}>
+                          <Text style={[styles.dropdownText, { color: COLORS[theme].textPrimary }]}>
+                            {formValues?.dropLocation?.location || 'Select Drop Location'}
+                          </Text>
+                          <MaterialCommunityIcon
+                            style={{ marginHorizontal: hp(2), transform: [{ scaleX: -1 }] }}
+                            name={"truck-delivery"}
+                            size={wp(7)}
+                            color={COLORS[theme].textPrimary}
+                          />
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+                  )}
                 </View>
                 <TouchableOpacity
                   onPress={() => getDriversData()}

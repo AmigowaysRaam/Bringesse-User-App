@@ -18,6 +18,7 @@ import CarouselData from '../../CarouselData';
 import { fetchData } from '../../../api/api';
 import StoreListData from '../../StoreListData';
 import LoaderContainer from '../../LoaderContainer';
+import VersionUpgradeModal from '../../VersionUpgradeModal';
 
 const HomeScreen = () => {
   const { theme } = useTheme();
@@ -29,11 +30,14 @@ const HomeScreen = () => {
   const profile = useSelector(state => state?.Auth?.profile);
   const accessToken = useSelector(state => state.Auth.accessToken);
   const [homePageData, setHomePageData] = useState(null);
+  const profileDetails = useSelector(state => state.Auth.profileDetails);
 
+  console.log(profileDetails, 'profileDetails');
   // Request permission for location (Android)
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') return true;
     try {
+
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
@@ -54,7 +58,7 @@ const HomeScreen = () => {
     try {
       console.log('Fetching address for coords:', latitude, longitude);
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc`
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${9.898533},${78.165138}&key=AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc`
       );
       const data = await response.json();
       console.log('Geocoding API response:', data);
@@ -84,7 +88,12 @@ const HomeScreen = () => {
           const { latitude, longitude } = position.coords;
           console.log(latitude, longitude, 'latitude', 'longitude');
           setLocation({ latitude, longitude });
-          getAddressFromCoords(latitude, longitude);  // Get the address
+          const primaryAdress = profile?.primary_address;
+          if (Object.keys(primaryAdress).length > 0) {
+            getAddressFromCoords(primaryAdress.lat, primaryAdress.lon);
+          } else {
+            getAddressFromCoords(latitude, longitude);  // Get the address
+          }
           resolve({ latitude, longitude });
         },
         (error) => {
@@ -103,13 +112,35 @@ const HomeScreen = () => {
     });
   };
 
+
+
+  const fetchProfileData = async () => {
+    if (!accessToken || !profile?.user_id) return;
+    try {
+      const data = await fetchData('userprofile/' + profile?.user_id, 'GET', null, {
+        Authorization: `${accessToken}`,
+        user_id: profile?.user_id,
+        type: 'user',
+      });
+      dispatch({
+        type: 'PROFILE_DETAILS',
+        payload: data,
+      });
+    } catch (error) {
+      console.error('Profile API Error:', error);
+    }
+  };
+
   // Fetch data for the home screen after location is fetched
   const getHomePageData = async (latitude, longitude) => {
+    // Alert.alert('Profile Data', JSON.stringify(profileDetails?.primary_address?.lat));
+    // fetchProfileData();
     if (!accessToken || !profile?.user_id) return;
     try {
       setLoading(true);  // Start loading
       const data = await fetchData('homeapi', 'POST', {
-        lat: latitude, lon: longitude
+        lat: profileDetails?.primary_address?.lat ? profileDetails?.primary_address?.lat : latitude,
+        lon: profileDetails?.primary_address?.lon ? profileDetails?.primary_address?.lon : longitude
       }, {
         Authorization: `${accessToken}`,
         user_id: profile?.user_id,
@@ -136,7 +167,7 @@ const HomeScreen = () => {
         setLoading(false);  // Stop loading
       };
       fetchLocationAndData();  // Ensure we get location first
-    }, [])
+    }, [profileDetails?.primary_address?.lat])
   );
 
   // Handle pull-to-refresh
@@ -151,6 +182,7 @@ const HomeScreen = () => {
   return (
     <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
       <UserToggleStatus address={address} loading={loading} />
+      <VersionUpgradeModal />
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={

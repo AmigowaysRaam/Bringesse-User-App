@@ -35,7 +35,7 @@ const SearchContainer = ({ banner }) => {
   }
 
   return (
-    <TouchableOpacity onPress={()=>navigation.navigate('Booking')} style={[styles.card, { backgroundColor: COLORS[theme].background }]}>
+    <TouchableOpacity onPress={()=>navigation.navigate('RevenueScreen')} style={[styles.card, { backgroundColor: COLORS[theme].background }]}>
       <View style={styles.userInfo}>
         <Image
           source={IMAGE_ASSETS?.search_filled}

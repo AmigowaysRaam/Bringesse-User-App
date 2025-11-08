@@ -3031,6 +3031,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-picker/picker@npm:^2.11.4":
+  version: 2.11.4
+  resolution: "@react-native-picker/picker@npm:2.11.4"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 03c34770ce137a149f2aea54cef38fa871df2d5207089d7041c12beff20d1ca4340eb3fa8aed09e1a7d5899c813187cf5c217571789482061fee5e4e4a0e4e34
+  languageName: node
+  linkType: hard
+
 "@react-native/assets-registry@npm:0.79.6":
   version: 0.79.6
   resolution: "@react-native/assets-registry@npm:0.79.6"
@@ -4662,6 +4672,7 @@ __metadata:
     "@react-native-community/slider": ^5.0.1
     "@react-native-firebase/app": ^21.6.0
     "@react-native-firebase/messaging": ^21.6.0
+    "@react-native-picker/picker": ^2.11.4
     "@react-native/babel-preset": 0.79.6
     "@react-native/eslint-config": 0.79.6
     "@react-native/metro-config": 0.79.6

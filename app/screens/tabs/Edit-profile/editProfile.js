@@ -139,7 +139,7 @@ const EditProfile = () => {
       style={[styles.container, { backgroundColor: COLORS[theme].background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <HeaderBar showBackArrow title={t('edit_profile')} />
+      <HeaderBar showBackArrow title={t('Edit Profile')} />
       <FlashMessage position="top" />
       <ScrollView
         style={{ paddingHorizontal: wp(5), marginTop: wp(3) }}

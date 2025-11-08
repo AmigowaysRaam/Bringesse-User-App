@@ -210,7 +210,7 @@ const UpdateProfilePic = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
-      <HeaderBar title={t('UpdateProfilePicture') || 'Update Profile Picture'} showBackArrow={true} />
+      <HeaderBar title={t('Update Profile Picture') || 'Update Profile Picture'} showBackArrow={true} />
 
       <TouchableOpacity>
         <Image

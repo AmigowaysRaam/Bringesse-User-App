@@ -95,9 +95,8 @@ const SelectionModal = ({
           data={data}
           keyExtractor={(item, index) => `${item.value}-${index}`}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: hp(2) }}
+          contentContainerStyle={{ paddingBottom: hp(6) }}
         />
-
         {multiSelect && (
           <TouchableOpacity
             style={[styles.doneButton, { backgroundColor: COLORS[theme].accent }]}

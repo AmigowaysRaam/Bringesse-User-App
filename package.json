@@ -24,6 +24,7 @@
     "@react-native-community/slider": "^5.0.1",
     "@react-native-firebase/app": "^21.6.0",
     "@react-native-firebase/messaging": "^21.6.0",
+    "@react-native-picker/picker": "^2.11.4",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/drawer": "^6.7.2",
     "@react-navigation/native": "^6.1.18",

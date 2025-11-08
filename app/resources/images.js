@@ -6,6 +6,7 @@ const IMAGE_ASSETS = {
   scooter: require('../assets/images/scooter.png'),
   moneybag: require('../assets/images/moneybag.png'),
   schedule: require('../assets/images/schedule.png'),
+  delivery_search:require('../assets/lottie/Delivery.json'),
   subscription: require('../assets/images/subscription.png'),
   otpBg:require('../assets/images/bg.png'),
   logo_circle:require('../assets/images/logo_circle.png'),

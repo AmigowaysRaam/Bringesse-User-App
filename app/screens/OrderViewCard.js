@@ -7,11 +7,8 @@ import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons'; // Import Ionicons for the call icon
 const OrderViewCard = ({
-    driverImage,
-    driverPhone,
-    driverName,
-    bookingStatus,
-    vehicleNumber, otp
+    driverImage, driverPhone, driverName,
+    bookingStatus, vehicleNumber, otp, completeOtp
 }) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
@@ -21,10 +18,13 @@ const OrderViewCard = ({
         Linking.openURL(`tel:${phoneNumber}`);
     };
 
+    if (!driverName || !driverPhone) {
+        return null; // Don't render the card if driver info is not available
+    }
     return (
         <View style={[styles.card, { backgroundColor: COLORS[theme].accent }]}>
             {/* Driver Info */}
-            {driverImage ? (
+            {driverName ? (
                 <View style={styles.userInfo}>
                     <Image source={{ uri: driverImage }} style={[styles.profileImage, {
                         backgroundColor: "#ccc"
@@ -85,7 +85,7 @@ const OrderViewCard = ({
                                     { color: COLORS[theme].white, textTransform: 'capitalize' },
                                 ]}
                             >
-                                OTP Number: {otp || 'N/A'}
+                                OTP Number: {bookingStatus == 'accepted' ? otp : completeOtp}
                             </Text>
                         )}
                     </View>
@@ -103,44 +103,25 @@ const OrderViewCard = ({
         </View>
     );
 };
-
 const styles = StyleSheet.create({
     card: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: wp(4),
-        paddingHorizontal: wp(4),
-        marginVertical: hp(1),
-        width: wp(95),
-        alignSelf: 'center',
-        borderRadius: wp(2),
+        flexDirection: 'row', alignItems: 'center', paddingVertical: wp(4),
+        paddingHorizontal: wp(4), marginVertical: hp(1), width: wp(95),
+        alignSelf: 'center', borderRadius: wp(2),
     },
-    userInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
+    userInfo: { flexDirection: 'row', alignItems: 'center', },
     profileImage: {
         width: wp(14),
-        height: wp(14),
-        borderRadius: wp(7),
+        height: wp(14), borderRadius: wp(7),
         marginRight: wp(3),
     },
     userTextContainer: {
         justifyContent: 'center',
     },
     phoneContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        // marginTop: wp(2),
-    },
-    callIcon: {
+        flexDirection: 'row', alignItems: 'center',
+    }, callIcon: {
         marginLeft: wp(2),
     },
-    statusContainer: {
-    },
-    vehicleContainer: {
-        // marginTop: wp(2),
-    },
 });
-
 export default OrderViewCard;
