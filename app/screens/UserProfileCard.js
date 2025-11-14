@@ -74,5 +74,4 @@ const styles = StyleSheet.create({
         marginVertical: wp(1),
     },
 });
-
 export default UserProfileCard;

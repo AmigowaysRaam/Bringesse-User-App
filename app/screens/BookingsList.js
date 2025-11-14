@@ -219,8 +219,14 @@ const BookingsList = ({ onModalToggle }) => {
                 <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Pickup Address:</Text>
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.pickupAddress}</Text>
 
-                <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Drop Address:</Text>
-                <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.dropAddress}</Text>
+                {
+                  selectedItem?.drop &&
+                  <>
+                    <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Drop Address:</Text>
+                    <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.dropAddress}</Text>
+                  </>
+                }
+
 
                 <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>OTP:</Text>
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.otp}</Text>
@@ -271,11 +277,12 @@ const BookingsList = ({ onModalToggle }) => {
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingVertical: hp(2), paddingBottom: hp(5), gap: wp(3),
+    paddingVertical: hp(2),
+     paddingBottom: hp(5), gap: wp(3),
     marginHorizontal: wp(3),
   },
   card: {
-    flexDirection: 'row', padding: wp(3),
+    flexDirection: 'row', padding: wp(2),
     borderRadius: wp(2), elevation: 2,
     shadowColor: '#000', shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },

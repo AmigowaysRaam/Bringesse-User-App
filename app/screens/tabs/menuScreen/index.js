@@ -28,12 +28,12 @@ const LogoutSection = () => {
   const { t } = useTranslation();
   const handleLogout = () => {
     Alert.alert(
-      t('confirm_logout'),
-      t('are_you_sure_logout'),
+      t('Confirm Logout'),
+      t('Are you sure you want to logout?'),
       [
         { text: t('cancel'), style: 'cancel' },
         {
-          text: t('yes_Logout'),
+          text: t('yes'),
           onPress: () => {
             AsyncStorage.clear();
             navigation.reset({
@@ -80,7 +80,7 @@ const ThemeSection = () => {
             color={COLORS[theme].textPrimary}
           />
           <Text style={[poppins.medium.h7, { color: COLORS[theme].textPrimary }]}>
-            {t('dark_mode')}
+            {t('Dark Mode')}
           </Text>
         </View>
         <ToggleTheme />
@@ -88,7 +88,6 @@ const ThemeSection = () => {
     </View>
   );
 };
-
 // --- Language Toggle Section ---
 const LangSection = () => {
 
@@ -222,9 +221,11 @@ const MoreScreen = () => {
             gap: wp(2),
             marginHorizontal: wp(2),
           }}>
+          <SectionItem icon="cart" navigation={navigation} label="Orders History" navigationPath='OrdersHistory' />
           {/* <SectionItem icon="archive-star" navigation={navigation} label="reviews" navigationPath='TermsAndCondtions' /> */}
           <SectionItem icon="shield-check" navigation={navigation} label="Terms and Conditions" navigationPath='TermsAndCondtions' />
           <SectionItem icon="trackpad-lock" navigation={navigation} label="Privacy and Policy" navigationPath='PrivacyandPolicy' />
+          
            {/* <SectionItem icon="cart-outline" navigation={navigation} label="My cart" navigationPath='Mycart' /> */}
           <ThemeSection />
           {/* <LangSection /> */}

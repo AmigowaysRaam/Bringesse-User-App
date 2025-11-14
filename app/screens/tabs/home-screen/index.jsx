@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { COLORS } from '../../../resources/colors';
 import { hp, wp } from '../../../resources/dimensions';
 import FlashMessage from 'react-native-flash-message';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import UserToggleStatus from '../../UserToggleStatus';
 import SearchContainer from '../../SearchContainer';
@@ -19,6 +19,7 @@ import { fetchData } from '../../../api/api';
 import StoreListData from '../../StoreListData';
 import LoaderContainer from '../../LoaderContainer';
 import VersionUpgradeModal from '../../VersionUpgradeModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const HomeScreen = () => {
   const { theme } = useTheme();
@@ -31,6 +32,7 @@ const HomeScreen = () => {
   const accessToken = useSelector(state => state.Auth.accessToken);
   const [homePageData, setHomePageData] = useState(null);
   const profileDetails = useSelector(state => state.Auth.profileDetails);
+  const navigation = useNavigation();
 
   console.log(profileDetails, 'profileDetails');
   // Request permission for location (Android)
@@ -88,8 +90,8 @@ const HomeScreen = () => {
           const { latitude, longitude } = position.coords;
           console.log(latitude, longitude, 'latitude', 'longitude');
           setLocation({ latitude, longitude });
-          const primaryAdress = profile?.primary_address;
-          if (Object.keys(primaryAdress).length > 0) {
+          const primaryAdress = profileDetails?.primary_address;
+          if (primaryAdress && Object.keys(primaryAdress).length > 0) {
             getAddressFromCoords(primaryAdress.lat, primaryAdress.lon);
           } else {
             getAddressFromCoords(latitude, longitude);  // Get the address
@@ -147,7 +149,14 @@ const HomeScreen = () => {
         type: 'user',
       });
       // console?.log(data, "HomeDATA");
-      if (data?.status === 'true') setHomePageData(data);
+      if (data?.status === 'true') {setHomePageData(data)}
+      else{
+        AsyncStorage.clear();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'GetStartedScreen' }],
+            });
+      };
     } catch (error) {
       console.error('Error fetching home page data:', error);
     } finally {
@@ -167,7 +176,7 @@ const HomeScreen = () => {
         setLoading(false);  // Stop loading
       };
       fetchLocationAndData();  // Ensure we get location first
-    }, [profileDetails?.primary_address?.lat])
+    }, [profileDetails?.primary_address?.lat,navigation])
   );
 
   // Handle pull-to-refresh

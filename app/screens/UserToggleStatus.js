@@ -10,7 +10,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { fetchData } from '../api/api';
 import { useNavigation } from '@react-navigation/native';
 
-const UserToggleStatus = ({address}) => {
+const UserToggleStatus = ({ address }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const dispatch = useDispatch();
@@ -68,7 +68,7 @@ const UserToggleStatus = ({address}) => {
             numberOfLines={1}
             style={[poppins.regular.h9, { color: COLORS[theme].white }]}
           >
-            {profileDetails?.primary_address?.address  ? profileDetails?.primary_address?.address + "," + profileDetails?.primary_address?.location?.replace(/^[A-Za-z0-9\+]+,?\s*/, '').trim() : address.replace(/^[A-Za-z0-9\+]+,?\s*/, '').trim() }
+            {profileDetails?.primary_address?.address ? profileDetails?.primary_address?.address + "," + profileDetails?.primary_address?.location?.replace(/^[A-Za-z0-9\+]+,?\s*/, '').trim() : address.replace(/^[A-Za-z0-9\+]+,?\s*/, '').trim()}
           </Text>
         </View>
       </View>

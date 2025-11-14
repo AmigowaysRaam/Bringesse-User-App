@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   PanResponder,
   View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
+  ToastAndroid,
 } from 'react-native';
 import {
   GestureHandlerRootView,
@@ -118,11 +119,12 @@ const OrdersScreen = () => {
     }
     setLocationModalVisible(false);
   };
-
   const getHomePageData = async () => {
     setLoading(true);
     try {
       const data = await fetchData('getvehiclecategories', 'GET', null, null);
+      // ToastAndroid.show(data?.data?.message, ToastAndroid.SHORT);
+      // Alert.alert('Vehicle Categories', JSON.stringify(data?.data));
       setVehcileCatgory(
         data?.data?.result?.map(category => ({
           label: category.name,
@@ -133,6 +135,7 @@ const OrdersScreen = () => {
       );
     } catch (error) {
       console.error('Error fetching home page data:', error);
+      // ToastAndroid.show(data?.data?.message, ToastAndroid.SHORT);
     } finally {
       setLoading(false);
     }
@@ -180,11 +183,13 @@ const OrdersScreen = () => {
       setLoading(false);  // Hide loader after data is fetched
     }
   };
+
   useFocusEffect(
     useCallback(() => {
       getHomePageData();
     }, [])
   );
+
   const renderDropdownField = (label, value, onPress, error, isRequired = true) => (
     <View style={styles.fieldContainer}>
       {renderLabel(label, isRequired)}
@@ -193,9 +198,9 @@ const OrdersScreen = () => {
           styles.dropdown,
           { borderColor: error ? 'red' : COLORS[theme].textPrimary, flexDirection: "row", justifyContent: "space-between" },
         ]}>
-          <Text style={[
+          <Text style={[poppins.regular.h7,
             styles.dropdownText,
-            { color: value ? COLORS[theme].textPrimary : COLORS[theme].textPrimary },
+            { color: value ? COLORS[theme].textPrimary : COLORS[theme].textPrimary,lineHeight:hp(3) },
           ]}>
             {value || `Select ${label}`}
           </Text>
@@ -214,6 +219,18 @@ const OrdersScreen = () => {
   const navigation = useNavigation();
   //enableDropLocation
   const handleBookNow = async () => {
+    // let payLoad = {
+    //   user_id: profile?.user_id,
+    //   vehicle_id: formValues?.vehicleTypeId,
+    //   category_id: formValues?.vehicleCategoryId,
+    //   category_name: formValues?.vehicleCategory,
+    //   pickup_location: formValues?.pickupLocation?.location,
+    //   pickup_lat: formValues?.pickupLocation?.lat,
+    //   pickup_lon: formValues?.pickupLocation?.lon,
+    //   drop_location: formValues?.dropLocation?.location,
+    //   drop_lat: formValues?.dropLocation?.lat,
+    //   drop_lon: formValues?.dropLocation?.lon,
+    // }
     let payLoad = {
       user_id: profile?.user_id,
       vehicle_id: formValues?.vehicleTypeId,
@@ -222,10 +239,14 @@ const OrdersScreen = () => {
       pickup_location: formValues?.pickupLocation?.location,
       pickup_lat: formValues?.pickupLocation?.lat,
       pickup_lon: formValues?.pickupLocation?.lon,
-      drop_location: formValues?.dropLocation?.location,
-      drop_lat: formValues?.dropLocation?.lat,
-      drop_lon: formValues?.dropLocation?.lon,
-    }
+    
+      // ✅ If drop location is missing, use pickup location instead
+      drop_location: formValues?.dropLocation?.location || formValues?.pickupLocation?.location,
+      drop_lat: formValues?.dropLocation?.lat || formValues?.pickupLocation?.lat,
+      drop_lon: formValues?.dropLocation?.lon || formValues?.pickupLocation?.lon,
+      enableDropLocation: enableDropLocation,
+    };
+    
     setLoading(true);  // Show loader when fetching data
     try {
       const data = await fetchData('booktransport', 'POST', payLoad,
@@ -293,7 +314,7 @@ const OrdersScreen = () => {
     <GestureHandlerRootView style={{ flex: 1, padding: wp(1) }}
       {...(!locationmodalVisible && !otherModal ? panResponder.panHandlers : {})}
     >
-      <HeaderBar title={t('Pickup/drop') || 'Orders'} showBackButton={false} />
+      <HeaderBar title={t('Pickup/drop') || 'Orders'} showBackButton={false}  />
       <FlashMessage style={{ zIndex: 100 }} position="top" />
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
@@ -350,7 +371,7 @@ const OrdersScreen = () => {
                     <TouchableOpacity onPress={() => openLocationModal('pickup')}>
                       <View style={[styles.dropdown, { borderColor: COLORS[theme].textPrimary }]}>
                         <Text style={[styles.dropdownText, { color: COLORS[theme].textPrimary }]}>
-                          {formValues?.pickupLocation?.location || 'Select Pickup Location'}
+                          {formValues?.pickupLocation?.location || "Select Service Location"}
                         </Text>
 
                         <MaterialCommunityIcon

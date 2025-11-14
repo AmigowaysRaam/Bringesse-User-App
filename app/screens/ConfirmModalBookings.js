@@ -101,7 +101,7 @@ const ConfirmModalBookings = ({ formValues, confirmModal, onEdit, onBookNow, dri
                         </Text>
                     </View>
                 </View>
-                <Text style={[poppins.regular.h7, { color: COLORS[theme].accent, alignSelf: "center", lineHeight: wp(6) }]}>
+                <Text style={[poppins.semi_bold.h7, { color: COLORS[theme].accent,textTransform:"capitalize", alignSelf: "center", lineHeight: wp(6) }]}>
                     {driverInfo?.message}
                 </Text>
             </ScrollView>

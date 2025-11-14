@@ -10,6 +10,9 @@ import {
     Platform,
     Alert,
     ToastAndroid,
+    KeyboardAvoidingView,
+    TouchableWithoutFeedback,
+    Keyboard,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import MapView, { Marker } from 'react-native-maps';
@@ -20,6 +23,10 @@ import axios from 'axios';
 import UseProfileHook from '../hooks/profile-hooks';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchData } from '../api/api';
+import HeaderBar from '../components/header';
+import { wp } from '../resources/dimensions';
+import { COLORS } from '../resources/colors';
+import { useTheme } from '../context/ThemeContext';
 
 export default function AddAddressScreen() {
 
@@ -42,6 +49,29 @@ export default function AddAddressScreen() {
     const [search, setSearch] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [keyboardVisible, setKeyboardVisible] = useState(false); // Track keyboard visibility
+    const [marginBottom, setMarginBottom] = useState(0); // Track marginBottom dynamically
+
+    useEffect(() => {
+        // Listeners for keyboard events
+        const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', (e) => {
+            setKeyboardVisible(true);
+            // Adjust marginBottom based on keyboard height
+            setMarginBottom(e.endCoordinates.height);
+        });
+
+        const keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', () => {
+            setKeyboardVisible(false);
+            // Reset marginBottom to default when keyboard is hidden
+            setMarginBottom(0);
+        });
+
+        // Cleanup listeners on component unmount
+        return () => {
+            keyboardDidHideListener.remove();
+            keyboardDidShowListener.remove();
+        };
+    }, []);
 
     const isManualMove = useRef(false);
     console.log('datta', addressData);
@@ -131,7 +161,6 @@ export default function AddAddressScreen() {
                     text
                 )}&key=AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc&components=country:in`
             );
-
             if (response.data.predictions.length > 0) {
                 setSuggestions(response.data.predictions);
                 setShowSuggestions(true);
@@ -153,7 +182,6 @@ export default function AddAddressScreen() {
             const response = await axios.get(
                 `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc`
             );
-
             const location = response.data.result.geometry.location;
             const newRegion = {
                 latitude: location.lat,
@@ -230,15 +258,15 @@ export default function AddAddressScreen() {
             console.log('Response:', data);
             fetchProfileData();
             if (!response.ok) throw new Error(data.message || 'Failed to save address');
-
             ToastAndroid.show(isEdit ? 'Address updated successfully!' : 'Address saved successfully!', ToastAndroid.SHORT)
             navigation.goBack();
-            navigation.goBack();
+            // navigation.goBack();
         } catch (error) {
             console.error('❌ Save Address Error:', error.message);
             Alert.alert('Error', error.message);
         }
     };
+    // Fetch updated profile data
     const fetchProfileData = async () => {
         if (!accessToken || !profile?.user_id) return;
         try {
@@ -256,151 +284,153 @@ export default function AddAddressScreen() {
         }
     };
     return (
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+            <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+            <View style={[styles.container, { marginBottom ,
+            backgroundColor: COLORS[useTheme().theme].background
+            }]}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <MaterialCommunityIcons name="arrow-left" size={26} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>Add new address</Text>
-            </View>
+                    <HeaderBar title={isEdit ? 'Edit Address' : 'Add Address'} showBackArrow={true} />
+                    {/* Search Section */}
+                    <View style={styles.searchWrapper}>
+                        <View style={styles.searchContainer}>
+                            <TextInput
+                                placeholder="Search location..."
+                                placeholderTextColor="#888"
+                                style={styles.searchInput}
+                                value={search}
+                                onChangeText={fetchSuggestions}
+                            />
+                            <MaterialCommunityIcons name="magnify" size={26} color="#e74c3c" />
+                        </View>
 
-            {/* Search Section */}
-            <View style={styles.searchWrapper}>
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        placeholder="Search location..."
-                        placeholderTextColor="#888"
-                        style={styles.searchInput}
-                        value={search}
-                        onChangeText={fetchSuggestions}
-                    />
-                    <MaterialCommunityIcons name="magnify" size={26} color="#e74c3c" />
-                </View>
+                        {showSuggestions && suggestions.length > 0 && (
+                            <View style={styles.suggestionBox}>
+                                {suggestions.map((item) => (
+                                    <TouchableOpacity
+                                        key={item.place_id}
+                                        style={styles.suggestionItem}
+                                        onPress={() =>
+                                            handleSelectSuggestion(item.place_id, item.description)
+                                        }
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="map-marker-outline"
+                                            size={18}
+                                            color={COLORS[useTheme().theme].black}
+                                        />
+                                        <Text style={[styles.suggestionText,{
+                                            // color:COLORS[useTheme().theme].primary
+                                        }]}>{item.description}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        )}
+                    </View>
 
-                {showSuggestions && suggestions.length > 0 && (
-                    <View style={styles.suggestionBox}>
-                        {suggestions.map((item) => (
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{
+                     
+                    }} style={{ }}>
+                        {/* Map Section */}
+                        <View style={styles.mapContainer}>
+                            <MapView
+                            initialRegion={region}
+                                style={styles.map}
+                                onRegionChangeComplete={(r) => {
+                                    if (isManualMove.current) {
+                                        isManualMove.current = false;
+                                        return;
+                                    }
+                                    setRegion(r); // ✅ Update marker position dynamically
+                                    getAddressFromCoords(r.latitude, r.longitude);
+                                }}
+                                showsUserLocation={true}
+                            >
+                                <Marker
+                                coordinate={region} />
+                            </MapView>
+
                             <TouchableOpacity
-                                key={item.place_id}
-                                style={styles.suggestionItem}
-                                onPress={() =>
-                                    handleSelectSuggestion(item.place_id, item.description)
-                                }
+                                style={styles.locationButton}
+                                onPress={getCurrentLocation}
                             >
                                 <MaterialCommunityIcons
-                                    name="map-marker-outline"
+                                    name="crosshairs-gps"
                                     size={18}
-                                    color="#555"
+                                    color="#e74c3c"
                                 />
-                                <Text style={styles.suggestionText}>{item.description}</Text>
+                                <Text style={styles.locationText}>Use current location</Text>
                             </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
-            </View>
+                        </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Map Section */}
-                <View style={styles.mapContainer}>
-                    <MapView
-                        style={styles.map}
-                        region={region}
-                        onRegionChangeComplete={(r) => {
-                            if (isManualMove.current) {
-                                isManualMove.current = false;
-                                return;
-                            }
-                            getAddressFromCoords(r.latitude, r.longitude);
-                        }}
-                        showsUserLocation={true}
-                    >
-                        <Marker coordinate={region} />
-                    </MapView>
-
-                    <TouchableOpacity
-                        style={styles.locationButton}
-                        onPress={getCurrentLocation}
-                    >
-                        <MaterialCommunityIcons
-                            name="crosshairs-gps"
-                            size={18}
-                            color="#e74c3c"
-                        />
-                        <Text style={styles.locationText}>Use current location</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Address Form */}
-                <View style={styles.formSection}>
-                    <Text style={styles.sectionLabel}>Delivery details</Text>
-                    <TouchableOpacity style={styles.locationRow}>
-                        <MaterialCommunityIcons name="map-marker" size={18} color="#e74c3c" />
-                        <Text style={styles.locationCity}>
-                            {address ? address : 'Fetching location...'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Address details (e.g., Flat, House No., Floor)"
-                        value={addressDetails}
-                        onChangeText={setAddressDetails}
-                        placeholderTextColor="#888"
-                    />
-
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Landmark (optional)"
-                        value={landmark}
-                        onChangeText={setLandmark}
-                        placeholderTextColor="#888"
-                    />
-
-                    <Text style={[styles.sectionLabel, { marginTop: 10 }]}>
-                        Save address as
-                    </Text>
-
-                    <View style={styles.addressTypeRow}>
-                        {['Home', 'Work', 'Other'].map((type) => (
-                            <TouchableOpacity
-                                key={type}
-                                onPress={() => setAddressType(type)}
-                                style={[
-                                    styles.addressTypeBtn,
-                                    addressType === type && styles.activeTypeBtn,
-                                ]}
-                            >
-                                <Text
-                                    style={[
-                                        styles.addressTypeText,
-                                        addressType === type && styles.activeTypeText,
-                                    ]}
-                                >
-                                    {type}
+                        {/* Address Form */}
+                        <View style={styles.formSection}>
+                            <Text style={styles.sectionLabel}>Delivery details</Text>
+                            <TouchableOpacity style={styles.locationRow}>
+                                <MaterialCommunityIcons name="map-marker" size={18} color="#e74c3c" />
+                                <Text style={styles.locationCity}>
+                                    {address ? address : 'Fetching location...'}
                                 </Text>
                             </TouchableOpacity>
-                        ))}
-                    </View>
 
-                    <TouchableOpacity style={styles.saveBtn} onPress={handleSaveAddress}>
-                        <Text style={styles.saveBtnText}>Save address</Text>
-                    </TouchableOpacity>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Address details (e.g., Flat, House No., Floor)"
+                                value={addressDetails}
+                                onChangeText={setAddressDetails}
+                                placeholderTextColor="#888"
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Landmark (optional)"
+                                value={landmark}
+                                onChangeText={setLandmark}
+                                placeholderTextColor="#888"
+                            />
+
+                            <Text style={[styles.sectionLabel, { marginTop: 10 }]}>
+                                Save address as
+                            </Text>
+
+                            <View style={styles.addressTypeRow}>
+                                {['Home', 'Work', 'Other'].map((type) => (
+                                    <TouchableOpacity
+                                        key={type}
+                                        onPress={() => setAddressType(type)}
+                                        style={[
+                                            styles.addressTypeBtn,
+                                            addressType === type && styles.activeTypeBtn,
+                                        ]}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.addressTypeText,
+                                                addressType === type && styles.activeTypeText,
+                                            ]}
+                                        >
+                                            {type}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
+                            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveAddress}>
+                                <Text style={styles.saveBtnText}>Save address</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </ScrollView>
                 </View>
-            </ScrollView>
-        </View>
+            </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 14,
-    },
-    headerTitle: { fontSize: 18, fontWeight: '600', marginLeft: 10 },
     searchWrapper: {
         marginHorizontal: 16,
         marginBottom: 10,
@@ -437,6 +467,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         overflow: 'hidden',
         marginHorizontal: 16,
+        marginBottom: 20,  // Add some margin bottom to ensure the map doesn't interfere with the rest of the content
     },
     map: { flex: 1 },
     locationButton: {
@@ -452,7 +483,11 @@ const styles = StyleSheet.create({
         elevation: 3,
     },
     locationText: { marginLeft: 6, color: '#e74c3c', fontWeight: '500' },
-    formSection: { paddingHorizontal: 16, marginTop: 15 },
+    formSection: {
+        paddingHorizontal: 16,
+        marginTop: 15,
+        paddingBottom: 20, // Add bottom padding to prevent overlap with the save button
+    },
     sectionLabel: { fontSize: 14, color: '#666', marginBottom: 4 },
     locationRow: {
         flexDirection: 'row',
@@ -462,7 +497,7 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 10,
     },
-    locationCity: { marginLeft: 8, fontSize: 15, color: '#000' },
+    locationCity: { marginLeft: 8, fontSize: 15, color: '#000' ,maxWidth:wp('78%')},
     input: {
         backgroundColor: '#f7f7f7',
         borderRadius: 8,
@@ -493,3 +528,4 @@ const styles = StyleSheet.create({
     },
     saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
+

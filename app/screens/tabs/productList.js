@@ -1,29 +1,21 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  LayoutAnimation,
-  Platform,
-  UIManager,
-  Modal,
-  FlatList,
-  KeyboardAvoidingView,
-  ActivityIndicator,
+  View, Text, StyleSheet, Image, TouchableOpacity, ScrollView,
+  TextInput, LayoutAnimation, Platform, UIManager,
+  Modal, FlatList, KeyboardAvoidingView, ActivityIndicator, Alert,
+  ToastAndroid,
 } from "react-native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import HeaderBar from "../../components/header";
 import FlashMessage from "react-native-flash-message";
 import UseProfileHook from "../../hooks/profile-hooks";
 import Toast from "react-native-toast-message";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { hp, wp } from "../../resources/dimensions";
 import { COLORS } from "../../resources/colors";
 import { useTheme } from "../../context/ThemeContext";
+import { useSelector } from "react-redux";
+import { fetchData } from "../../api/api";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -41,6 +33,10 @@ const ProductListScreen = ({ route }) => {
   const [selectedVariants, setSelectedVariants] = useState({});
   const [cartItems, setCartItems] = useState({});
   const [cartSummary, setCartSummary] = useState({ totalItems: 0, totalPrice: 0 });
+  const profileDetails = useSelector(state => state.Auth.profileDetails);
+  const accessToken = useSelector(state => state.Auth.accessToken);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredTopProducts, setFilteredTopProducts] = useState([]);
 
   const formatTo12Hour = (utcTime) => {
     const date = new Date(utcTime);
@@ -51,21 +47,75 @@ const ProductListScreen = ({ route }) => {
       hour12: true,
     });
   };
+  useEffect(() => {
+    getStoreDetails();
+  }, []);
+
+  useEffect(() => {
+    if (storeData?.top_products) {
+      setFilteredTopProducts(storeData.top_products);
+    }
+  }, [storeData]);
+
+
+  // 🔁 Re-fetch cart count every time tab bar gains focus or user returns to it
+  useFocusEffect(
+    useCallback(() => {
+      fetchCartCount();
+    }, [navigation])
+  );
+  // ✅ Fetch Cart Count from API
+  const fetchCartCount = async () => {
+    // if (!accessToken || !profileDetails?.user_id) return;
+    try {
+      const data = await fetchData(
+        'cart/get',
+        'POST',
+        {
+          user_id: profile?.user_id,
+          lat: profileDetails?.primary_address?.lat,
+          lon: profileDetails?.primary_address?.lon,
+        },
+        {
+          Authorization: `${accessToken}`,
+          user_id: profile?.user_id,
+          type: 'user',
+        }
+      );
+
+      if (data?.status === true) {
+        // setCartCount(data.data?.items?.length || 0);
+        // Alert.alert("Cart Data", JSON.stringify(data.data?.items || {}))
+        setCartSummary(data.data?.items || {});
+        // Alert.alert("Cart Data", JSON.stringify(cartSummary,null,2 || {}))
+
+      } else {
+        ToastAndroid.show(data.message || 'Unable to fetch cart.', ToastAndroid.SHORT);
+      }
+    } catch (error) {
+      console.error('Error fetching cart data:', error);
+    }
+  };
 
   const updateCartSummary = (cart = cartItems) => {
-    let totalItems = 0;
-    let totalPrice = 0;
-    Object.values(cart).forEach((item) => {
-      totalItems += item.qty;
-      totalPrice += item.qty * item.price;
-    });
-    setCartSummary({ totalItems, totalPrice });
+    fetchCartCount();
+    // Alert.alert("Cart Data", JSON.stringify(cartSummary, null, 2))
+    // let totalItems = 0;
+    // let totalPrice = 0;
+    // Object.values(cart).forEach((item) => {
+    //   totalItems += item.qty;
+    //   totalPrice += item.qty * item.price;
+    // });
+    // setCartSummary({ totalItems, totalPrice });
   };
 
   const addToCart = async (item) => {
+    if (Object.keys(profileDetails?.primary_address || {}).length == 0) {
+      navigation?.navigate('SelectLocation');
+      return;
+    }
     try {
       const selected = selectedVariants[item.item_id] || { variant: item.variant_list[0], index: 0 };
-
       const payload = {
         user_id: profile?.user_id,
         variant_index: selected.index,
@@ -73,7 +123,6 @@ const ProductListScreen = ({ route }) => {
         store_id: storeId,
         type: "add",
       };
-
       const response = await fetch("https://bringesse.com:3003/api/cart/update", {
         method: "POST",
         headers: {
@@ -82,9 +131,7 @@ const ProductListScreen = ({ route }) => {
         },
         body: JSON.stringify(payload),
       });
-
       const data = await response.json();
-
       if (data?.status) {
         const variant = selected.variant;
         setCartItems((prev) => {
@@ -100,18 +147,18 @@ const ProductListScreen = ({ route }) => {
           return updated;
         });
       } else {
-        alert("Failed to add item. Try again!");
+        ToastAndroid.show(data.message, ToastAndroid.SHORT);
+        // alert("Failed to add item. Try again!");
       }
     } catch (error) {
       console.error("Add to Cart Error:", error);
-      alert("Error adding item to cart!");
+      // alert("Error adding item to cart!");
     }
   };
   const increaseQty = async (itemId) => {
     try {
       const item = cartItems[itemId];
       const selected = selectedVariants[itemId] || { variant: item.variant_list?.[0], index: 0 };
-
       const payload = {
         user_id: profile?.user_id,
         variant_index: selected.index,
@@ -119,7 +166,6 @@ const ProductListScreen = ({ route }) => {
         store_id: storeId,
         type: "add",
       };
-
       const response = await fetch("https://bringesse.com:3003/api/cart/update", {
         method: "POST",
         headers: {
@@ -128,9 +174,7 @@ const ProductListScreen = ({ route }) => {
         },
         body: JSON.stringify(payload),
       });
-
       const data = await response.json();
-
       if (data?.status) {
         setCartItems((prev) => {
           const updated = { ...prev };
@@ -145,8 +189,6 @@ const ProductListScreen = ({ route }) => {
       console.error("Increase Qty Error:", error);
     }
   };
-
-
   const decreaseQty = async (itemId) => {
     try {
       const item = cartItems[itemId];
@@ -189,7 +231,6 @@ const ProductListScreen = ({ route }) => {
       console.error("Decrease Qty Error:", error);
     }
   };
-
   const getStoreDetails = async () => {
     try {
       setLoading(true);
@@ -223,9 +264,19 @@ const ProductListScreen = ({ route }) => {
     }
   };
 
-  useEffect(() => {
-    getStoreDetails();
-  }, []);
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    if (!text.trim()) {
+      // show all products when search is empty
+      setFilteredTopProducts(storeData?.top_products || []);
+      return;
+    }
+
+    const filtered = storeData?.top_products?.filter((item) =>
+      item.name?.toLowerCase().includes(text.toLowerCase())
+    ) || [];
+    setFilteredTopProducts(filtered);
+  };
 
   const toggleExpand = (section) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -264,7 +315,7 @@ const ProductListScreen = ({ route }) => {
   return (
     <KeyboardAvoidingView
       style={[styles.container, {
-        backgroundColor: COLORS[theme].backgroundcolor
+        backgroundColor: COLORS[theme].background
       }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
@@ -274,141 +325,150 @@ const ProductListScreen = ({ route }) => {
         loading ?
           <ActivityIndicator color={COLORS[theme].textPrimary} />
           :
-          <ScrollView style={[styles.container, {
-            backgroundColor: COLORS[theme].backgroundcolor
-          }]} showsVerticalScrollIndicator={false}>
-            {store && (
-              <View style={styles.card}>
-                <Image source={{ uri: store.image_url }} style={[styles.storeImage, {
-                  resizeMode: 'contain'
-                }]} />
-                <Text style={styles.storeName}>{store.name}</Text>
-                <Text style={styles.address}>{store.address}</Text>
-                <View style={styles.row}>
-                  <View style={styles.iconRow}>
-                    <MaterialCommunityIcons name="star" color="#00BFA6" size={18} />
-                    <Text style={styles.iconText}>{store.rating}</Text>
-                  </View>
-                  <View style={styles.iconRow}>
-                    <MaterialCommunityIcons name="map-marker" color="#00BFA6" size={18} />
-                    <Text style={styles.iconText}>{store.distance}</Text>
-                  </View>
-                  <View style={styles.iconRow}>
-                    <MaterialCommunityIcons name="clock-outline" color="#00BFA6" size={18} />
-                    <Text style={styles.iconText}>{store.packing_time} mins</Text>
-                  </View>
-                </View>
-                {store.top_store === "true" && (
-                  <TouchableOpacity style={styles.badge}>
-                    <Text style={styles.badgeText}>Top Store</Text>
-                  </TouchableOpacity>
-                )}
+          <View style={{ flex: 1, marginBottom: cartSummary?.length > 0 ? hp(8) : 0 }}>
 
-                <View style={styles.timeRow}>
-                  <Text style={styles.timeText}>
-                    Open: {formatTo12Hour(store.opening_time)}
-                  </Text>
-                  <Text style={styles.timeText}>
-                    Close: {formatTo12Hour(store.closing_time)}
-                  </Text>
+            <ScrollView style={[styles.container, {
+              backgroundColor: COLORS[theme].backgroundcolor
+            }]} showsVerticalScrollIndicator={false}>
+              {store && (
+                <View style={styles.card}>
+                  {store.top_store === "true" && (
+                    <TouchableOpacity style={styles.badge}>
+                      <Text style={[styles.badgeText, {
+                      }]}>Top Store</Text>
+                    </TouchableOpacity>
+                  )}
+                  <Image source={{ uri: store.image_url }} style={[styles.storeImage, {
+                    resizeMode: 'contain'
+                  }]} />
+                  <Text style={styles.storeName}>{store.name}</Text>
+                  <Text style={styles.address}>{store.address}</Text>
+                  <View style={styles.row}>
+                    <View style={styles.iconRow}>
+                      <MaterialCommunityIcons name="star" color="#00BFA6" size={18} />
+                      <Text style={styles.iconText}>{store.rating}</Text>
+                    </View>
+                    <View style={styles.iconRow}>
+                      <MaterialCommunityIcons name="map-marker" color="#00BFA6" size={18} />
+                      <Text style={styles.iconText}>{store.distance}</Text>
+                    </View>
+                    <View style={styles.iconRow}>
+                      <MaterialCommunityIcons name="clock-outline" color="#00BFA6" size={18} />
+                      <Text style={styles.iconText}>{store.packing_time} mins</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.timeRow}>
+                    <Text style={styles.timeText}>
+                      Open: {formatTo12Hour(store.opening_time)}
+                    </Text>
+                    <Text style={styles.timeText}>
+                      Close: {formatTo12Hour(store.closing_time)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )}
-            <View style={styles.tabRow}>
+              )}
+              {/* <View style={styles.tabRow}>
               <Text style={[styles.tab, styles.activeTab]}>Product</Text>
               <Text style={styles.tab}>Category’s</Text>
               <Text style={styles.tab}>Reviews</Text>
-            </View>
-            <TextInput
-              style={styles.searchBox}
-              placeholder="Search"
-              placeholderTextColor="#aaa"
-            />
-            <TouchableOpacity onPress={() => toggleExpand("top")} style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Top Products</Text>
-              <MaterialCommunityIcons
-                name={expandTop ? "chevron-up" : "chevron-down"}
-                size={24}
-                color="#000"
+            </View> */}
+              <TextInput
+                style={styles.searchBox}
+                placeholder="Search"
+                placeholderTextColor="#aaa"
+                value={searchQuery}
+                onChangeText={handleSearch}
               />
-            </TouchableOpacity>
-
-            {expandTop &&
-              topProducts.map((item) => {
-                const variant = selectedVariantData(item);
-                const index = selectedIndexData(item);
-
-                return (
-                  <View key={item.item_id} style={styles.productCard}>
-                    <Image source={{ uri: item.image_url }} style={styles.productImage} />
-                    <Text style={styles.productName}>{item.name}</Text>
-
-                    {item.variant_list?.length > 0 && (
-                      <TouchableOpacity
-                        style={styles.variantSelector}
-                        onPress={() => setVariantModal({ visible: true, item })}
-                      >
-                        <Text style={styles.variantText}>
-                          {variant?.name} {variant?.unit}
+              <TouchableOpacity onPress={() => toggleExpand("top")} style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, {
+                  color: COLORS[theme].textPrimary
+                }]}>Top Products</Text>
+                <MaterialCommunityIcons
+                  name={expandTop ? "chevron-up" : "chevron-down"}
+                  size={24}
+                  color={COLORS[theme].textPrimary}
+                />
+              </TouchableOpacity>
+              {expandTop &&
+                filteredTopProducts.map((item) => {
+                  const variant = selectedVariantData(item);
+                  const index = selectedIndexData(item);
+                  return (
+                    <View key={item.item_id} style={styles.productCard}>
+                      <Image source={{ uri: item.image_url }} style={styles.productImage} />
+                      <Text style={[styles.productName, {
+                        color: COLORS[theme].black, textTransform: "capitalize"
+                      }]}>{item.name}</Text>
+                      {/* {item.variant_list?.length > 0 && (
+                        <TouchableOpacity
+                          style={styles.variantSelector}
+                          onPress={() => setVariantModal({ visible: true, item })}
+                        >
+                          <Text style={[styles.variantText,]}>
+                            {variant?.name} {variant?.unit}
+                          </Text>
+                          <MaterialCommunityIcons name="chevron-down" size={22} color="#333" />
+                        </TouchableOpacity>
+                      )} */}
+                      <View style={styles.priceRow}>
+                        <Text style={[styles.price, {
+                          color: COLORS[theme].black
+                        }]}>
+                          ₹{variant?.offer_price || variant?.price}
                         </Text>
-                        <MaterialCommunityIcons name="chevron-down" size={22} color="#333" />
-                      </TouchableOpacity>
-                    )}
-
-                    <View style={styles.priceRow}>
-                      <Text style={styles.price}>
-                        ₹{variant?.offer_price || variant?.price}
-                      </Text>
-                      {item.offer_available === "true" && (
-                        <Text style={styles.oldPrice}>₹{variant?.price}</Text>
+                        {item.offer_available === "true" && (
+                          <Text style={[styles.oldPrice, {
+                            color: COLORS[theme].black
+                          }]}>₹{variant?.price}</Text>
+                        )}
+                      </View>
+                      {cartItems[item.item_id] ? (
+                        <View style={styles.qtyRow}>
+                          <TouchableOpacity
+                            style={styles.qtyButton}
+                            onPress={() => decreaseQty(item.item_id)}
+                          >
+                            <Text style={styles.qtyButtonText}>-</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.qtyText}>{cartItems[item.item_id].qty}</Text>
+                          <TouchableOpacity
+                            style={styles.qtyButton}
+                            onPress={() => increaseQty(item.item_id)}
+                          >
+                            <Text style={styles.qtyButtonText}>+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={() => addToCart(item)}
+                          style={styles.addButton}
+                        >
+                          <Text style={styles.addButtonText}>Add to cart</Text>
+                        </TouchableOpacity>
                       )}
                     </View>
-
-                    {cartItems[item.item_id] ? (
-                      <View style={styles.qtyRow}>
-                        <TouchableOpacity
-                          style={styles.qtyButton}
-                          onPress={() => decreaseQty(item.item_id)}
-                        >
-                          <Text style={styles.qtyButtonText}>-</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.qtyText}>{cartItems[item.item_id].qty}</Text>
-                        <TouchableOpacity
-                          style={styles.qtyButton}
-                          onPress={() => increaseQty(item.item_id)}
-                        >
-                          <Text style={styles.qtyButtonText}>+</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={() => addToCart(item)}
-                        style={styles.addButton}
-                      >
-                        <Text style={styles.addButtonText}>Add to cart</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })}
-
-            <TouchableOpacity onPress={() => toggleExpand("best")} style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Best Seller</Text>
-              <MaterialCommunityIcons
-                name={expandBest ? "chevron-up" : "chevron-down"}
-                size={24}
-                color="#000"
-              />
-            </TouchableOpacity>
-
-            {expandBest && (
-              <View style={styles.productCard}>
-                <Text style={{ textAlign: "center", color: "#888" }}>
-                  No Best Sellers Yet
-                </Text>
-              </View>
-            )}
-          </ScrollView>
+                  );
+                })}
+              {/* <TouchableOpacity onPress={() => toggleExpand("best")} style={styles.sectionHeader}>
+                <Text style={[styles.sectionTitle, {
+                  color: COLORS[theme].textPrimary
+                }]}>Best Seller</Text>
+                <MaterialCommunityIcons
+                  name={expandBest ? "chevron-up" : "chevron-down"}
+                  size={24}
+                  color="#000"
+                />
+              </TouchableOpacity> */}
+              {expandBest && (
+                <View style={styles.productCard}>
+                  <Text style={{ textAlign: "center", color: "#888" }}>
+                    No Best Sellers Yet
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
       }
       <Modal
         visible={variantModal.visible}
@@ -445,10 +505,10 @@ const ProductListScreen = ({ route }) => {
         </View>
       </Modal>
 
-      {cartSummary.totalItems > 0 && (
+      {cartSummary.length > 0 && (
         <View style={styles.bottomBar}>
           <Text style={styles.bottomBarText}>
-            {cartSummary.totalItems} item(s) added · ₹{cartSummary.totalPrice}
+            {cartSummary?.length + " items in cart"}
           </Text>
           <TouchableOpacity
             style={styles.viewCartBtn}
@@ -467,14 +527,14 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: wp(1) },
   loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   card: {
-    backgroundColor: "#fff", borderRadius: 16,
-    padding: wp(2), marginBottom: 12,
+    backgroundColor: "#c9c9c9", borderRadius: wp(2),
+    padding: wp(3), marginBottom: 12,
     shadowColor: "#000", shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 3 },
     shadowRadius: 5, elevation: 3,
   },
-  storeImage: { width: "100%", height: hp(10), borderRadius: 12, marginBottom: wp(1) },
-  storeName: { fontSize: 20, fontWeight: "bold", marginBottom: 4 },
+  // storeImage: { width: "100%", height: hp(10), borderRadius: 12, marginBottom: wp(0.3) },
+  storeName: { fontSize: wp(4), fontWeight: "bold", marginBottom: wp(2), color: "#000", textTransform: "capitalize" },
   address: { fontSize: 13, color: "#777", marginBottom: 10 },
   row: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
   iconRow: { flexDirection: "row", alignItems: "center", marginRight: 15 },
@@ -495,7 +555,7 @@ const styles = StyleSheet.create({
   activeTab: { color: "#00BFA6", fontWeight: "600" },
   searchBox: {
     backgroundColor: "#F6F6F6",
-    borderRadius: 10, padding: 10, marginBottom: 15,
+    borderRadius: 10, padding: 10, marginBottom: wp(1),
     color: "#000",
   },
   sectionHeader: {
@@ -541,12 +601,11 @@ const styles = StyleSheet.create({
   },
   variantText: { color: "#333", fontSize: 14 },
   modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    flex: 1, backgroundColor: "rgba(0,0,0,0.3)",
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: "#fff", borderTopLeftRadius: 16,
+    backgroundColor: "#222", borderTopLeftRadius: 16,
     borderTopRightRadius: 16, maxHeight: "60%",
     padding: 16,
   },
@@ -554,17 +613,17 @@ const styles = StyleSheet.create({
   modalItem: { paddingVertical: 12, borderBottomWidth: 1, borderColor: "#eee" },
   modalItemText: { fontSize: 15 },
   modalCloseButton: {
-    backgroundColor: "#00BFA6",
-    marginTop: 12, borderRadius: 8,
-    paddingVertical: 12,
+    backgroundColor: "#00BFA6", marginTop: 12, borderRadius: 8, paddingVertical: 12,
   },
-  modalCloseText: { textAlign: "center", color: "#fff", fontWeight: "600" },
+
+  modalCloseText: { textAlign: "center", color: "#000", fontWeight: "600" },
   bottomBar: {
-    flexDirection: "row",
-    justifyContent: "space-between", alignItems: "center",
-    backgroundColor: "#00BFA6", paddingHorizontal: 16,
-    paddingVertical: 14, borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    flexDirection: "row", justifyContent: "space-between",
+    alignItems: "center", backgroundColor: "#00BFA6",
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderTopLeftRadius: 12, borderTopRightRadius: 12,
+
   },
   bottomBarText: { color: "#fff", fontWeight: "600", fontSize: 15 },
   viewCartBtn: {

@@ -61,42 +61,39 @@ const SelectionModal = ({
           multiSelect ? toggleItem(item) : (onSelect(item), onDismiss())
         }
       >
-          {multiSelect  && (
+        {multiSelect && (
           // <Text style={{ color: COLORS[theme].accent }}>✓</Text>
           <MaterialCommunityIcon
-          name= {isSelected? "check-circle" :'circle-outline'}
-          size={wp(6)}
-          color={COLORS[theme].white} style={{ marginRight: wp(3) }}
-        />
-)}
+            name={isSelected ? "check-circle" : 'circle-outline'}
+            size={wp(6)}
+            color={COLORS[theme].white} style={{ marginRight: wp(3) }}
+          />
+        )}
         <Text style={[styles.itemText, { color: COLORS[theme].textPrimary }]}>
           {item?.label}
         </Text>
-      
+
       </TouchableOpacity>
     );
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onDismiss}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
+    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
       <TouchableWithoutFeedback onPress={onDismiss}>
         <View style={styles.overlay} />
       </TouchableWithoutFeedback>
-
+  
       <View style={[styles.modalContainer, { backgroundColor: COLORS[theme].background }]}>
         <Text style={[styles.title, { color: COLORS[theme].textPrimary }]}>{title}</Text>
-
+  
         <FlatList
           data={data}
           keyExtractor={(item, index) => `${item.value}-${index}`}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: hp(6) }}
         />
+  
         {multiSelect && (
           <TouchableOpacity
             style={[styles.doneButton, { backgroundColor: COLORS[theme].accent }]}
@@ -106,14 +103,14 @@ const SelectionModal = ({
           </TouchableOpacity>
         )}
       </View>
-    </Modal>
+    </View>
+  </Modal>
   );
 };
-
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: '#00000088',
+    backgroundColor: '#999',
   },
   modalContainer: {
     position: 'absolute',

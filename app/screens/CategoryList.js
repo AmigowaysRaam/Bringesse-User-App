@@ -13,7 +13,7 @@ const CategoryList = ({ banner }) => {
   const navigation = useNavigation(); // ✅ for navigation
 
   const handleCategoryPress = (item) => {
-    console.log("item",item)
+    // console.log("item",item)
     navigation.navigate('CategoryDetails', {
       categoryId: item.category_id,
      

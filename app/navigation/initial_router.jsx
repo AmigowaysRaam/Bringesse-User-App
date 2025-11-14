@@ -21,6 +21,8 @@ import CartList from '../screens/mycart';
 import SelectLocationScreen from '../screens/select_location';
 import AddAddressScreen from '../screens/add_address';
 import RevenueScreen from '../screens/RevenueScreen';
+import OrdersHistory from '../screens/OrdersHistory';
+import OrderDetail from '../screens/OrderDetail';
 
 const Stack = createNativeStackNavigator();
 const MyTheme = {
@@ -65,7 +67,8 @@ function InitialRouter() {
         <Stack.Screen name="SelectLocation" component={SelectLocationScreen} />
         <Stack.Screen name="AddAddress" component={AddAddressScreen} />
         <Stack.Screen name="RevenueScreen" component={RevenueScreen} />
-
+        <Stack.Screen name="OrdersHistory" component={OrdersHistory} />
+        <Stack.Screen name="OrderDetail" component={OrderDetail} />
 
       </Stack.Navigator>
     </NavigationContainer>

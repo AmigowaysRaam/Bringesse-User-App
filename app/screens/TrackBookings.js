@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, StyleSheet, ActivityIndicator, PermissionsAndroid,
-  Platform, Alert, Image, Text, TouchableOpacity,
+  Platform, Image, Text, TouchableOpacity,
   ToastAndroid,
 } from 'react-native';
 import { hp, wp } from '../resources/dimensions';
@@ -22,7 +22,7 @@ import { poppins } from '../resources/fonts';
 import { useNavigation } from '@react-navigation/native';
 import LottieView from 'lottie-react-native';
 import ReviewModal from './ReviewModal';
-
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 const SOCKET_URL = 'https://www.bringesse.com:3000/';
 const TrackBookings = ({ route }) => {
   const { theme } = useTheme();
@@ -40,6 +40,8 @@ const TrackBookings = ({ route }) => {
   const [loadingStatus, setLoadingStatus] = useState(false);
   const navigation = useNavigation();
   const [reviewModal, setreviewModal] = useState(false);
+  const [bookingCreatedAt, setBookingCreatedAt] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(300); // seconds (10 minutes)
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
@@ -86,7 +88,10 @@ const TrackBookings = ({ route }) => {
       const responseData = await fetchData('/transport/bookingdetail', 'POST', payload, null);
       if (responseData?.status === true) {
         const booking = responseData?.data[0];
-        const { driver, status, vehicle, otp, pickupLocation, completeOtp } = booking;
+        const { driver, status, vehicle, otp, pickupLocation, completeOtp, createdAt } = booking;
+        if (createdAt) {
+          setBookingCreatedAt(createdAt);
+        }
 
         const pickLocation = pickupLocation?.coordinates;
         if (pickLocation) {
@@ -125,6 +130,28 @@ const TrackBookings = ({ route }) => {
   };
 
   useEffect(() => {
+    if (!bookingCreatedAt) return;
+
+    const createdTime = new Date(bookingCreatedAt).getTime();
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const diffMs = now - createdTime;
+      const diffSec = Math.floor(diffMs / 1000);
+      const remaining = 300 - diffSec; // 5 minutes = 300 seconds
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        ToastAndroid.show('Booking expired after 10 minutes', ToastAndroid.SHORT);
+        navigation.goBack();
+      } else {
+        setTimeLeft(remaining);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [bookingCreatedAt]);
+
+  useEffect(() => {
     const socketConnection = io(SOCKET_URL);
     setSocket(socketConnection);
     const userType = profileDetails?.userType || 'user';
@@ -139,7 +166,6 @@ const TrackBookings = ({ route }) => {
         });
       }
     });
-
     socketConnection.on('bookingStatusUpdate', (data) => {
       const { bookingId, status, driverInfo } = data;
       if (status === 'accept') {
@@ -165,9 +191,7 @@ const TrackBookings = ({ route }) => {
     if (bookingStatus == 'cancelled') {
       navigation.goBack();
     }
-
   }, [bookingStatus]);
-
   useEffect(() => {
     if (location && destinationCoords) {
       fetchRoute();
@@ -183,24 +207,12 @@ const TrackBookings = ({ route }) => {
     }
   }, [location, destinationCoords]);
 
-  // Cancel booking function
-
-  // const cancelBooking = () => {
-  //   if (socket && selectedItem?._id) {
-  //     socket.emit('cancelBooking', selectedItem?._id);
-  //     // Alert.alert(t('Booking canceled'));
-  //     ToastAndroid.show(t('Booking has been canceled'), ToastAndroid.SHORT);
-  //     navigation.goBack();  // Optionally, navigate back after cancellation
-  //   }
-  // };
-
-
   const cancelBooking = async () => {
     let payload = {
       user_id: profileDetails?.user_id,
       booking_id: selectedItem?._id
     }
-    // setLoading(true)
+    setLoadingStatus(true)
     try {
       const data = await fetchData('transport/cancelbooking', 'POST', payload);
       // Alert.alert(JSON.stringify(profileDetails, null, 2));
@@ -217,14 +229,21 @@ const TrackBookings = ({ route }) => {
     } catch (err) {
       console.error('cancelbooking fetch error:', err);
     } finally {
+      setLoadingStatus(false)
+
     }
   };
-
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
       <HeaderBar title={t('TrackBookings') || 'TrackBookings'} showBackArrow={true} />
       <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
-
+        {bookingStatus == 'pending' && timeLeft > 0 && (
+          <View style={{ alignItems: 'center', paddingVertical: wp(2), backgroundColor: "#FF0000", width: wp(50), alignSelf: "center", borderRadius: wp(2) }}>
+            <Text style={[poppins.regular.h3, { color: COLORS[theme].white, fontSize: wp(4) }]}>
+              Auto cancel in {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+            </Text>
+          </View>
+        )}
         {mapLoading || loadingStatus ? (
           <View style={styles.loader}>
             <ActivityIndicator size="large" color={COLORS[theme].accent} />

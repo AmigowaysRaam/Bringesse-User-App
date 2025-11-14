@@ -14,9 +14,13 @@ import HeaderBar from "../../../components/header";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { fetchData } from "../../../api/api";
 import { Picker } from "@react-native-picker/picker";
+import { COLORS } from "../../../resources/colors";
+import { ThemeProvider, useTheme } from "../../../context/ThemeContext";
 
 // ✅ Separate StoreCard component
 const StoreCard = ({ item, navigation }) => {
+  const { theme } = useTheme();
+
   const [selectedVariant, setSelectedVariant] = useState(
     item.variants && item.variants.length > 0 ? item.variants[0] : null
   );
@@ -110,7 +114,7 @@ const CategoryStore = () => {
   const route = useRoute();
   const { categoryId } = route.params || {};
   const navigation = useNavigation();
-
+  const { theme } = useTheme();
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -151,7 +155,9 @@ const CategoryStore = () => {
   }, [categoryId]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, {
+      backgroundColor: COLORS[theme].background
+    }]}>
       <HeaderBar showBackArrow title={"Stores"} />
 
       {/* 🔍 Search Bar */}
@@ -195,7 +201,6 @@ const CategoryStore = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     paddingHorizontal: 15,
   },
   searchContainer: {

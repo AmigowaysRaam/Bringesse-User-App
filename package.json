@@ -22,6 +22,7 @@
     "@react-native-community/geolocation": "^3.4.0",
     "@react-native-community/netinfo": "^11.4.1",
     "@react-native-community/slider": "^5.0.1",
+    "@react-native-documents/picker": "^11.0.0",
     "@react-native-firebase/app": "^21.6.0",
     "@react-native-firebase/messaging": "^21.6.0",
     "@react-native-picker/picker": "^2.11.4",
