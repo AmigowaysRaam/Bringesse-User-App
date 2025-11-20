@@ -43,7 +43,7 @@ const SearchContainer = ({ banner }) => {
           resizeMode="cover"
         />
         <View style={styles.userTextContainer}>
-          <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary }]}>
+          <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary,textTransform:"capitalize" }]}>
             {`Search for ${banner?.category[currentIndex]?.category_name}...`}
           </Text>
         </View>

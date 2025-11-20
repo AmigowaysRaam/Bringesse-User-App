@@ -311,7 +311,7 @@ const OrdersScreen = () => {
   ).current;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, padding: wp(1) }}
+    <GestureHandlerRootView style={{ flex: 1, padding: wp(1),opacity:modalVisible? 0.2:1  }}
       {...(!locationmodalVisible && !otherModal ? panResponder.panHandlers : {})}
     >
       <HeaderBar title={t('Pickup/drop') || 'Orders'} showBackButton={false}  />

@@ -125,10 +125,11 @@ const BookingsList = ({ onModalToggle }) => {
       onPress={() => openModal(item)}
       style={[styles.card, { backgroundColor: COLORS[theme].viewBackground }]}
     >
+      {/* <Text>{JSON.stringify(item)}</Text> */}
       <View style={styles.iconContainer}>
         {item.vehicle?.image ? (
           <Image
-            source={{ uri: `${siteDetails?.image_url}${item.vehicle.image}` }}
+            source={{ uri: `${siteDetails?.media_url+"vehicles/"}${item.vehicle.image}` }}
             style={styles.vehicleImage}
             resizeMode="contain"
           />
@@ -144,7 +145,7 @@ const BookingsList = ({ onModalToggle }) => {
           Vehicle: {item.vehicle?.name || 'N/A'} ({item.categoryName})
         </Text>
 
-        <Text style={[poppins.regular.h8, { marginTop: hp(0.5), color: COLORS[theme].textPrimary }]}>
+        <Text style={[poppins.regular.h8, { marginTop: hp(0.5), color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
           Status: {item.status}
         </Text>
 
@@ -278,7 +279,7 @@ const BookingsList = ({ onModalToggle }) => {
 const styles = StyleSheet.create({
   scrollContent: {
     paddingVertical: hp(2),
-     paddingBottom: hp(5), gap: wp(3),
+    paddingBottom: hp(5), gap: wp(3),
     marginHorizontal: wp(3),
   },
   card: {

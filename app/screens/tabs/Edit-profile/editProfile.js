@@ -19,6 +19,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchData } from '../../../api/api';
 import FlashMessage, { showMessage } from 'react-native-flash-message';
 import VerifyPhoneModal from '../../VerifyPhoneModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const EditProfile = () => {
   const { theme } = useTheme();
@@ -27,6 +28,7 @@ const EditProfile = () => {
   const profileDetails = useSelector(state => state.Auth.profileDetails);
   const accessToken = useSelector(state => state.Auth.accessToken);
   const siteDetails = useSelector(state => state.Auth.siteDetails);
+  const profile = useSelector(state => state.Auth.profile);
 
   const dispatch = useDispatch();
   const [verifyModalVisible, setVerifyModalVisible] = useState(false);
@@ -41,24 +43,17 @@ const EditProfile = () => {
     location: '',
   });
   const [errors, setErrors] = useState({});
-
   const handleChange = (field, value) => {
     setFormValues(prev => ({ ...prev, [field]: value }));
     setErrors(prev => ({ ...prev, [field]: null }));
   };
-
   const validateFields = () => {
     const newErrors = {};
-    // if (!formValues.full_name.trim()) newErrors.full_name = 'First name is required.';
-    // if (!formValues.lastName.trim()) newErrors.lastName = 'Last name is required.';
-    // if (!formValues.email.trim()) newErrors.email = 'Email is required.';
-    // if (!formValues.password.trim()) newErrors.password = 'Password is required.';
-    // if (!formValues.location.trim()) newErrors.location = 'Location is required.';
+   
     if (!formValues.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handlePhoneVerification = (phone) => {
     // setVerifiedPhone(phone);
     setFormValues(prev => ({ ...prev, mobileNumber: phone }));
@@ -88,12 +83,17 @@ const EditProfile = () => {
           payload: data,
         });
         setTimeout(() => {
-          navigation?.goBack();
+          navigation?.goBack(); 
           setLoading(false);
         }, 500);
       } else {
         showMessage({ message: data?.message, type: 'error' });
         setLoading(false);
+        AsyncStorage.clear();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'GetStartedScreen' }],
+        });
       }
     } catch (error) {
       console.error('updateprofile API Error:', error);
@@ -102,9 +102,8 @@ const EditProfile = () => {
     } finally {
     }
   };
-
   useEffect(() => {
-    // console?.log(siteDetails, "siteDetails")
+    // console?.log(JSON.stringify(profileDetails,null,2), "profileDetails")
     if (profileDetails) {
       setFormValues({
         full_name: profileDetails?.full_name || '',
@@ -147,7 +146,9 @@ const EditProfile = () => {
       >
         {renderTextField('Full Name', formValues.full_name, 'full_name')}
         {renderTextField('Email ID', formValues.email, 'email')}
-        <TouchableOpacity onPress={() => setVerifyModalVisible(true)} style={styles.fieldContainer}>
+        <TouchableOpacity 
+        onPress={() => setVerifyModalVisible(true)} 
+        style={styles.fieldContainer}>
           <Text style={[styles.label, { color: COLORS[theme].textPrimary }]}>Mobile Number <Text style={{ color: "red" }}>*</Text> </Text>
           <TextInput
             style={styles.input}
@@ -159,23 +160,6 @@ const EditProfile = () => {
             right={<TextInput.Icon icon="chevron-right" color={COLORS[theme].textPrimary} />}
           />
         </TouchableOpacity>
-        {/* {renderTextField('Password', formValues.password, 'password', true)} */}
-        {/* <TouchableOpacity onPress={() => navigation?.navigate('ChangePassword')} style={styles.fieldContainer}>
-          <Text style={[styles.label, { color: COLORS[theme].textPrimary }]}>Password</Text>
-          <TextInput
-            style={[styles.input, {
-              // alignItems:"center"
-              // justifyContent:"center"
-            }]}
-            mode="outlined"
-            value={"********"}
-            editable={false}
-            placeholder="Verify Mobile Number"
-
-            textColor={COLORS[theme].textPrimary}
-            right={<TextInput.Icon icon="chevron-right" color={COLORS[theme].textPrimary} />}
-          />
-        </TouchableOpacity> */}
         <View style={{ marginTop: hp(2), marginBottom: hp(3) }}>
           <TouchableOpacity
             onPress={handleSubmit}
@@ -190,13 +174,12 @@ const EditProfile = () => {
               <ActivityIndicator size="small" color={COLORS[theme].white} />
             ) : (
               <Text style={[poppins.regular.h4, { color: COLORS[theme].white }]}>
-                {t('save')}
+                {t('Save Changes')}
               </Text>
             )}
           </TouchableOpacity>
         </View>
       </ScrollView>
-
       <VerifyPhoneModal
         visible={verifyModalVisible}
         onClose={() => setVerifyModalVisible(false)}

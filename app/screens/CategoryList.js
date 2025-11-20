@@ -40,9 +40,9 @@ const CategoryList = ({ banner }) => {
             />
             <Text
               style={[
-                poppins.regular.h8,
+                poppins.regular.h9,
                 styles.categoryText,
-                { color: COLORS[theme].textPrimary, maxWidth: wp(25) },
+                { color: COLORS[theme].textPrimary, maxWidth: wp(30) },
               ]}
               numberOfLines={1}
             >
@@ -57,7 +57,7 @@ const CategoryList = ({ banner }) => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: wp(0.5),
+    paddingVertical: wp(0.1),
   },
   listContainer: {
     paddingHorizontal: wp(3),
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     textAlign: 'center',
-    marginTop: wp(1),
+    // marginTop: wp(1),
   },
 });
 

@@ -6,27 +6,33 @@ import { COLORS } from '../resources/colors';
 import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons'; // Import Ionicons for the call icon
+import { useSelector } from 'react-redux';
 const OrderViewCard = ({
     driverImage, driverPhone, driverName,
-    bookingStatus, vehicleNumber, otp, completeOtp
+    bookingStatus, vehicleNumber, otp, completeOtp, vehicle
 }) => {
     const { theme } = useTheme();
     const { t } = useTranslation();
+    const siteDetails = useSelector(state => state.Auth.siteDetails);
 
     // Function to handle phone call
     const handleCall = (phoneNumber) => {
         Linking.openURL(`tel:${phoneNumber}`);
     };
 
+    // console.log( siteDetails?.media_url + 'drivers/' + driverImage);
     if (!driverName || !driverPhone) {
         return null; // Don't render the card if driver info is not available
     }
     return (
         <View style={[styles.card, { backgroundColor: COLORS[theme].accent }]}>
+            {/* <Text>{
+                JSON.stringify(siteDetails, null, 2)
+            }</Text> */}
             {/* Driver Info */}
             {driverName ? (
                 <View style={styles.userInfo}>
-                    <Image source={{ uri: driverImage }} style={[styles.profileImage, {
+                    <Image source={{ uri: siteDetails?.media_url + 'drivers/images/' + driverImage }} style={[styles.profileImage, {
                         backgroundColor: "#ccc"
                     }]} />
                     <View style={styles.userTextContainer}>
@@ -116,7 +122,7 @@ const styles = StyleSheet.create({
         marginRight: wp(3),
     },
     userTextContainer: {
-        justifyContent: 'center',
+        // justifyContent: 'center',
     },
     phoneContainer: {
         flexDirection: 'row', alignItems: 'center',

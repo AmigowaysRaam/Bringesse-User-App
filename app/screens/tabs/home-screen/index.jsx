@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, StyleSheet, PermissionsAndroid,
-  Platform, Alert, ActivityIndicator, ScrollView, RefreshControl
-} from 'react-native';
+  Platform, Alert, ActivityIndicator, ScrollView, RefreshControl,
+  FlatList} from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { useTheme } from '../../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,6 @@ import StoreListData from '../../StoreListData';
 import LoaderContainer from '../../LoaderContainer';
 import VersionUpgradeModal from '../../VersionUpgradeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 const HomeScreen = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -33,9 +32,7 @@ const HomeScreen = () => {
   const [homePageData, setHomePageData] = useState(null);
   const profileDetails = useSelector(state => state.Auth.profileDetails);
   const navigation = useNavigation();
-
-  console.log(profileDetails, 'profileDetails');
-  // Request permission for location (Android)
+  
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') return true;
     try {
@@ -88,7 +85,7 @@ const HomeScreen = () => {
       Geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          console.log(latitude, longitude, 'latitude', 'longitude');
+          // console.log(latitude, longitude, 'latitude', 'longitude');
           setLocation({ latitude, longitude });
           const primaryAdress = profileDetails?.primary_address;
           if (primaryAdress && Object.keys(primaryAdress).length > 0) {
@@ -114,25 +111,6 @@ const HomeScreen = () => {
     });
   };
 
-
-
-  const fetchProfileData = async () => {
-    if (!accessToken || !profile?.user_id) return;
-    try {
-      const data = await fetchData('userprofile/' + profile?.user_id, 'GET', null, {
-        Authorization: `${accessToken}`,
-        user_id: profile?.user_id,
-        type: 'user',
-      });
-      dispatch({
-        type: 'PROFILE_DETAILS',
-        payload: data,
-      });
-    } catch (error) {
-      console.error('Profile API Error:', error);
-    }
-  };
-
   // Fetch data for the home screen after location is fetched
   const getHomePageData = async (latitude, longitude) => {
     // Alert.alert('Profile Data', JSON.stringify(profileDetails?.primary_address?.lat));
@@ -149,13 +127,13 @@ const HomeScreen = () => {
         type: 'user',
       });
       // console?.log(data, "HomeDATA");
-      if (data?.status === 'true') {setHomePageData(data)}
-      else{
+      if (data?.status === 'true') { setHomePageData(data) }
+      else {
         AsyncStorage.clear();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'GetStartedScreen' }],
-            });
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'GetStartedScreen' }],
+        });
       };
     } catch (error) {
       console.error('Error fetching home page data:', error);
@@ -163,7 +141,6 @@ const HomeScreen = () => {
       setLoading(false);  // Stop loading
     }
   };
-
   // Fetch location and home page data on screen focus
   useFocusEffect(
     useCallback(() => {
@@ -176,7 +153,7 @@ const HomeScreen = () => {
         setLoading(false);  // Stop loading
       };
       fetchLocationAndData();  // Ensure we get location first
-    }, [profileDetails?.primary_address?.lat,navigation])
+    }, [profileDetails?.primary_address?.lat, navigation])
   );
 
   // Handle pull-to-refresh
@@ -192,32 +169,34 @@ const HomeScreen = () => {
     <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
       <UserToggleStatus address={address} loading={loading} />
       <VersionUpgradeModal />
-      <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={false}
-            onRefresh={onRefresh}
-            colors={[COLORS[theme].accent]} // Customize the refresh control color
-          />
-        }
-      >
-        {loading ? (
-          <LoaderContainer />
-        ) : (
-          <>
-            <SearchContainer banner={homePageData} />
-            <CarouselData banner={homePageData} />
-            <CategoryList banner={homePageData} />
-            <StoreListData banner={homePageData} />
-          </>
-        )}
-      </ScrollView>
+      {loading ? (
+        <LoaderContainer />
+      ) : (
+        <FlatList
+          data={[1]}  // dummy entry to render whole screen
+          keyExtractor={() => "1"}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLORS[theme].accent]}
+            />
+          }
+          renderItem={() => (
+            <>
+              <SearchContainer banner={homePageData} />
+              <CarouselData banner={homePageData} />
+              <CategoryList banner={homePageData} />
+              <StoreListData banner={homePageData} />  
+            </>
+          )}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
       <FlashMessage position="top" />
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -238,5 +217,4 @@ const styles = StyleSheet.create({
     fontSize: wp(3.8),
   },
 });
-
 export default HomeScreen;

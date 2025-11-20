@@ -16,6 +16,7 @@ import { fetchData } from '../api/api';
 import { useSelector } from 'react-redux';
 import DeviceInfo from 'react-native-device-info';
 import moment from 'moment';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const Notification = () => {
 
   const { theme } = useTheme();
@@ -61,9 +62,13 @@ const Notification = () => {
         } else {
           setNotificationData(prev => [...prev, ...data.result]);
         }
-
         setHasMore(data.result.length >= limit);
       } else {
+        AsyncStorage.clear();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'GetStartedScreen' }],
+        });
         if (pageNumber === 1) setNotificationData([]);
         setHasMore(false);
       }
@@ -74,7 +79,6 @@ const Notification = () => {
       setFetchingMore(false);
     }
   }, [accessToken, profile?.user_id]);
-
   useEffect(() => {
     setPage(1);
     fetchNotifications(1);

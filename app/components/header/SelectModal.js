@@ -1,18 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  FlatList,
-  TouchableWithoutFeedback,
+  Modal, View, Text, TouchableOpacity, StyleSheet, FlatList, TouchableWithoutFeedback,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../resources/colors';
 import { wp, hp } from '../../resources/dimensions';
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
-
 const SelectionModal = ({
   visible,
   data = [],
@@ -25,7 +18,6 @@ const SelectionModal = ({
 }) => {
   const { theme } = useTheme();
   const [localSelected, setLocalSelected] = useState([]);
-
   useEffect(() => {
     setLocalSelected(selectedValues || []);
   }, [selectedValues, visible]);
@@ -79,38 +71,38 @@ const SelectionModal = ({
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
-    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-      <TouchableWithoutFeedback onPress={onDismiss}>
-        <View style={styles.overlay} />
-      </TouchableWithoutFeedback>
-  
-      <View style={[styles.modalContainer, { backgroundColor: COLORS[theme].background }]}>
-        <Text style={[styles.title, { color: COLORS[theme].textPrimary }]}>{title}</Text>
-  
-        <FlatList
-          data={data}
-          keyExtractor={(item, index) => `${item.value}-${index}`}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: hp(6) }}
-        />
-  
-        {multiSelect && (
-          <TouchableOpacity
-            style={[styles.doneButton, { backgroundColor: COLORS[theme].accent }]}
-            onPress={handleConfirm}
-          >
-            <Text style={{ color: COLORS[theme].white, textAlign: 'center' }}>Done</Text>
-          </TouchableOpacity>
-        )}
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+        <TouchableWithoutFeedback onPress={onDismiss}>
+          <View style={styles.overlay} />
+        </TouchableWithoutFeedback>
+
+        <View style={[styles.modalContainer, { backgroundColor: COLORS[theme].background }]}>
+          <Text style={[styles.title, { color: COLORS[theme].textPrimary }]}>{title}</Text>
+
+          <FlatList
+            data={data}
+            keyExtractor={(item, index) => `${item.value}-${index}`}
+            renderItem={renderItem}
+            contentContainerStyle={{ paddingBottom: hp(6) }}
+          />
+
+          {multiSelect && (
+            <TouchableOpacity
+              style={[styles.doneButton, { backgroundColor: COLORS[theme].accent }]}
+              onPress={handleConfirm}
+            >
+              <Text style={{ color: COLORS[theme].white, textAlign: 'center' }}>Done</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
-  </Modal>
+    </Modal>
   );
 };
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: '#999',
+    backgroundColor: 'rcb(0,0,0,0.9)',
   },
   modalContainer: {
     position: 'absolute',

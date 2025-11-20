@@ -72,7 +72,7 @@ const HeaderBar = ({
               style={[
                 poppins.regular.h9,
                 {
-                  color: COLORS[theme].textSecondary,
+                  color: COLORS[theme].textPrimary,
                   textTransform: 'capitalize',
                   lineHeight: hp(2.2),
                 },
@@ -82,7 +82,6 @@ const HeaderBar = ({
             </Text>
           )}
         </View>
-
         {/* Right Arrow */}
         {showRightArrow != '' && (
           <TouchableOpacity

@@ -149,17 +149,15 @@ const UpdateProfilePic = () => {
       body: formData,
       headers: {
         "Authorization": accessToken,
-        "user_id": profileDetails.user_id,
+        "user_id": profileDetails?.user_id,
         "type": "user"
       },
       redirect: "follow"
     };
-
     try {
       const response = await fetch("https://bringesse.com:3003/api/fileupload", requestOptions);
       const resultText = await response.text();
       console.log(resultText);
-
       const resultJson = JSON.parse(resultText);
       if (resultJson?.status === 'true') {
         await fnUpdateProfilePic(resultJson?.file_url);

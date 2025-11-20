@@ -23,6 +23,7 @@ import AddAddressScreen from '../screens/add_address';
 import RevenueScreen from '../screens/RevenueScreen';
 import OrdersHistory from '../screens/OrdersHistory';
 import OrderDetail from '../screens/OrderDetail';
+import FoodDeliveryTrack from '../screens/FoodDeliveryTrack';
 
 const Stack = createNativeStackNavigator();
 const MyTheme = {
@@ -69,6 +70,9 @@ function InitialRouter() {
         <Stack.Screen name="RevenueScreen" component={RevenueScreen} />
         <Stack.Screen name="OrdersHistory" component={OrdersHistory} />
         <Stack.Screen name="OrderDetail" component={OrderDetail} />
+        <Stack.Screen name="FoodDeliveryTrack" component={FoodDeliveryTrack} />
+
+        
 
       </Stack.Navigator>
     </NavigationContainer>

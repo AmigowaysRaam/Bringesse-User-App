@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { fetchData } from '../api/api';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const UserToggleStatus = ({ address }) => {
   const { theme } = useTheme();
@@ -21,8 +22,11 @@ const UserToggleStatus = ({ address }) => {
 
   useEffect(() => {
     fetchProfileData();
+    // getAsyncStorageData();
     // Alert.alert('Profile Data', JSON.stringify(profileDetails?.primary_address));
   }, []);
+
+
 
   const fetchProfileData = async () => {
     if (!accessToken || !profile?.user_id) return;
@@ -32,10 +36,29 @@ const UserToggleStatus = ({ address }) => {
         user_id: profile?.user_id,
         type: 'user',
       });
-      dispatch({
-        type: 'PROFILE_DETAILS',
-        payload: data,
-      });
+      if(data?.status == 'true'){
+        dispatch({
+          type: 'PROFILE_DETAILS',
+          payload: data,
+        });
+      }
+      else{
+        AsyncStorage.clear();
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'GetStartedScreen' }],
+        });
+      }
+      console?.log(data?.status == 'true', 'Profile Data');
+      // const getAsyncStorageData = async () => {
+      //   if (!profileDetails?.user_id) {
+      //     AsyncStorage.clear();
+      //     navigation.reset({
+      //       index: 0,
+      //       routes: [{ name: 'GetStartedScreen' }],
+      //     });
+      //   }
+      // }
     } catch (error) {
       console.error('Profile API Error:', error);
     }

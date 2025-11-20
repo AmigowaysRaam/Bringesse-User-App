@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import HeaderBar from '../components/header';
 import { useSelector } from 'react-redux';
 import MapView, { Marker, Polyline } from 'react-native-maps';
-import Geolocation from 'react-native-geolocation-service';
+// import Geolocation from 'react-native-geolocation-service';
 import polyline from '@mapbox/polyline';
 import OrderViewCard from './OrderViewCard';
 import { fetchData } from '../api/api';
@@ -24,6 +24,7 @@ import LottieView from 'lottie-react-native';
 import ReviewModal from './ReviewModal';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 const SOCKET_URL = 'https://www.bringesse.com:3000/';
+
 const TrackBookings = ({ route }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -42,6 +43,9 @@ const TrackBookings = ({ route }) => {
   const [reviewModal, setreviewModal] = useState(false);
   const [bookingCreatedAt, setBookingCreatedAt] = useState(null);
   const [timeLeft, setTimeLeft] = useState(300); // seconds (10 minutes)
+  const accessToken = useSelector(state => state.Auth.accessToken);
+  const siteDetails = useSelector(state => state.Auth.siteDetails);
+  const socketRef = useRef(null);
 
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') {
@@ -85,14 +89,18 @@ const TrackBookings = ({ route }) => {
     };
     // Alert.alert(JSON.stringify( profileDetails?.user_id,null,2));
     try {
-      const responseData = await fetchData('/transport/bookingdetail', 'POST', payload, null);
+      const responseData = await fetchData('/transport/bookingdetail', 'POST', payload, {
+        Authorization: `${accessToken}`,
+        user_id: profileDetails?.user_id,
+        type: "user"
+      });
       if (responseData?.status === true) {
         const booking = responseData?.data[0];
+
         const { driver, status, vehicle, otp, pickupLocation, completeOtp, createdAt } = booking;
         if (createdAt) {
           setBookingCreatedAt(createdAt);
         }
-
         const pickLocation = pickupLocation?.coordinates;
         if (pickLocation) {
           setLocation({
@@ -110,14 +118,15 @@ const TrackBookings = ({ route }) => {
           });
         }
         const extractedData = {
-          driverImage: driver.profileImage,
-          driverPhone: driver.phone,
-          driverName: driver.name,
+          driverImage: driver?.profileImage,
+          driverPhone: driver?.phone,
+          driverName: driver?.name,
           bookingStatus: status,
-          vehicleNumber: driver.vehicleNumber,
+          vehicleNumber: driver?.vehicleNumber,
           otp: otp,
           completeOtp: completeOtp,
-          driver: driver
+          driver: driver ? driver : null,
+          vehicle: vehicle,
         };
         setBookingData(extractedData);
         setBookingStatus(status);
@@ -128,62 +137,43 @@ const TrackBookings = ({ route }) => {
       console.error('Booking fetch error:', err);
     }
   };
-
   useEffect(() => {
-    if (!bookingCreatedAt) return;
-
-    const createdTime = new Date(bookingCreatedAt).getTime();
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const diffMs = now - createdTime;
-      const diffSec = Math.floor(diffMs / 1000);
-      const remaining = 300 - diffSec; // 5 minutes = 300 seconds
-
-      if (remaining <= 0) {
-        clearInterval(interval);
-        ToastAndroid.show('Booking expired after 10 minutes', ToastAndroid.SHORT);
-        navigation.goBack();
-      } else {
-        setTimeLeft(remaining);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [bookingCreatedAt]);
-
-  useEffect(() => {
-    const socketConnection = io(SOCKET_URL);
-    setSocket(socketConnection);
+    // Connect socket
+    socketRef.current = io(SOCKET_URL, {
+      transports: ['websocket'],  // important for RN
+      forceNew: true,
+    });
+  
+    const socket = socketRef.current;
     const userType = profileDetails?.userType || 'user';
-    socketConnection.emit('joinBookingRoom', selectedItem?._id, userType);
-    getBookingsDetails();
-    socketConnection.on('locationUpdate', (newLocation) => {
+    socket.emit("joinBookingRoom", selectedItem?._id, userType);
+    // ---- Location Update Event ----
+    socket.on("locationUpdate", (newLocation) => {
       if (newLocation) {
-        getBookingsDetails();
         setDestinationCoords({
           latitude: newLocation.latitude,
           longitude: newLocation.longitude,
         });
       }
     });
-    socketConnection.on('bookingStatusUpdate', (data) => {
-      const { bookingId, status, driverInfo } = data;
-      if (status === 'accept') {
-        getBookingsDetails();
-      }
-      if (status === 'accept') {
-        // getBookingsDetails();
-      }
-      setBookingStatus(status);
+    // ---- Booking Status Update ----
+    socket.on("bookingStatusUpdate", (data) => {
+      setBookingStatus(data?.status);
     });
-
+    // Cleanup
     return () => {
-      if (socketConnection) {
-        socketConnection.disconnect();
-      }
+      if (socket) socket.disconnect();
     };
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const status = await getBookingsDetails();
+      console.log("Updated status:", status);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+  
   useEffect(() => {
     if (bookingStatus === 'completed') {
       setreviewModal(true);
@@ -214,10 +204,12 @@ const TrackBookings = ({ route }) => {
     }
     setLoadingStatus(true)
     try {
-      const data = await fetchData('transport/cancelbooking', 'POST', payload);
-      // Alert.alert(JSON.stringify(profileDetails, null, 2));
+      const data = await fetchData('transport/cancelbooking', 'POST', payload, {
+        Authorization: `${accessToken}`,
+        user_id: profileDetails?.user_id,
+        type: "user"
+      });
       if (data?.status === true) {
-        // fetchBookings();
         if (socket && selectedItem?._id) {
           socket.emit('cancelBooking', selectedItem?._id);
           // Alert.alert(t('Booking canceled'));
@@ -225,25 +217,19 @@ const TrackBookings = ({ route }) => {
           navigation.goBack();  // Optionally, navigate back after cancellation
         }
       } else {
+        ToastAndroid.show(data?.message, ToastAndroid.SHORT);
       }
     } catch (err) {
       console.error('cancelbooking fetch error:', err);
     } finally {
       setLoadingStatus(false)
-
     }
   };
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
-      <HeaderBar title={t('TrackBookings') || 'TrackBookings'} showBackArrow={true} />
+      <HeaderBar title={t('Track Bookings') || 'Track Bookings'} showBackArrow={true} />
       <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
-        {bookingStatus == 'pending' && timeLeft > 0 && (
-          <View style={{ alignItems: 'center', paddingVertical: wp(2), backgroundColor: "#FF0000", width: wp(50), alignSelf: "center", borderRadius: wp(2) }}>
-            <Text style={[poppins.regular.h3, { color: COLORS[theme].white, fontSize: wp(4) }]}>
-              Auto cancel in {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-            </Text>
-          </View>
-        )}
+        
         {mapLoading || loadingStatus ? (
           <View style={styles.loader}>
             <ActivityIndicator size="large" color={COLORS[theme].accent} />
@@ -259,26 +245,25 @@ const TrackBookings = ({ route }) => {
               >
                 <Marker coordinate={location}>
                   <Image
-                    source={{ uri: profileDetails?.user_image }}
+                    source={IMAGE_ASSETS?.ic_pickup_marker}
+
+                    resizeMode='contain'
                     style={{
                       width: wp(10),
                       height: wp(10),
-                      borderRadius: wp(5),
+                      // borderRadius: wp(5),
                     }}
                   />
                 </Marker>
                 <Marker coordinate={destinationCoords}>
                   <Image
-                    source={IMAGE_ASSETS?.scooter}
+                    source={{ uri: siteDetails?.media_url + 'vehicles/' + bookingData?.vehicle?.image }}
                     style={{
                       width: wp(10),
                       height: wp(10),
                       borderRadius: wp(5),
                     }}
                   />
-                  <Text style={[poppins.regular.h9, { color: "#000", backgroundColor: "yellow", borderWidth: wp(0.1), borderColor: 'black' }]}>
-                    {bookingStatus}
-                  </Text>
                 </Marker>
                 <Polyline coordinates={routeCoordinates} strokeWidth={4} strokeColor="blue" />
               </MapView>
@@ -310,6 +295,7 @@ const TrackBookings = ({ route }) => {
           vehicleNumber={bookingData.vehicleNumber}
           otp={bookingData?.otp}
           completeOtp={bookingData?.completeOtp}
+          vehicle={bookingData?.vehicle}
         />
       )}
       {/* Cancel button visible if the status is "pending" */}
@@ -332,33 +318,16 @@ const TrackBookings = ({ route }) => {
     </GestureHandlerRootView>
   );
 };
-
 const styles = StyleSheet.create({
   centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, justifyContent: 'center', alignItems: 'center',
   },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  map: {
-    flex: 1,
-  },
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center', }, map: { flex: 1, },
   cancelButton: {
-    backgroundColor: '#FF0000',
-    padding: wp(4),
-    borderRadius: wp(2),
-    alignItems: 'center',
+    backgroundColor: '#FF0000', padding: wp(4), borderRadius: wp(2), alignItems: 'center',
     marginHorizontal: hp(2),
   },
-  cancelButtonText: {
-    color: COLORS.white,
-    fontSize: wp(4.5),
-    fontWeight: 'bold',
-  },
+  cancelButtonText: { color: '#FFF', fontSize: wp(4.5), fontWeight: 'bold', },
 });
 
 export default TrackBookings;

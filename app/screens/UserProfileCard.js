@@ -17,7 +17,7 @@ const UserProfileCard = () => {
     const userName = `${profile?.full_name || profile?.phone_no}`;
 
     useEffect(() => {
-        console.log(profileDetails?.user_image, "test")
+        // console.log(profileDetails?.user_image, "test")
     }, [])
 
     return (

@@ -290,7 +290,7 @@ export default function GetStartedScreen() {
             </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={() => handleGetOTP()} style={{ backgroundColor: COLORS[theme].accent, height: hp(5), borderRadius: wp(8), width: wp(60), marginVertical: hp(4), alignItems: "center", justifyContent: "center", alignSelf: "center" }}>
-            <Text style={[poppins.regular.h5, { color: COLORS[theme].white }]}>
+            <Text style={[poppins.regular.h5, { color: COLORS[theme].white,lineHeight:hp(4) }]}>
               Get OTP
             </Text>
           </TouchableOpacity>
@@ -317,7 +317,6 @@ export default function GetStartedScreen() {
               />
             ))}
           </View>
-
           {timer > 0 ? (
             <Text style={{ color: COLORS[theme].textPrimary }}>
               Resend OTP in {timer}s
@@ -329,7 +328,6 @@ export default function GetStartedScreen() {
               </Text>
             </TouchableOpacity>
           )}
-
           {loading && <ActivityIndicator style={{ marginTop: hp(2) }} color={COLORS[theme].accent} />}
         </>
       )}

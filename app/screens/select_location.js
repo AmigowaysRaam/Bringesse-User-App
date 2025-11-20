@@ -317,7 +317,7 @@ export default function SelectLocationScreen() {
             {/* Bottom Sheet Modal */}
             <Modal
                 transparent
-                animationType="slide"
+                animationType="none"
                 visible={showOptions}
                 onRequestClose={() => setShowOptions(false)}
             >

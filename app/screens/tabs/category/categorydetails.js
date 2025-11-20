@@ -1,14 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TextInput,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+  View,  Text,  StyleSheet,  Image,  TextInput,
+  FlatList,  TouchableOpacity,  ActivityIndicator,} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import HeaderBar from "../../../components/header";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -16,10 +9,13 @@ import { fetchData } from "../../../api/api";
 import { Picker } from "@react-native-picker/picker";
 import { COLORS } from "../../../resources/colors";
 import { ThemeProvider, useTheme } from "../../../context/ThemeContext";
+import { poppins } from "../../../resources/fonts";
+import { useSelector } from "react-redux";
 
 // ✅ Separate StoreCard component
 const StoreCard = ({ item, navigation }) => {
   const { theme } = useTheme();
+  const profileDetails = useSelector(state => state.Auth.profileDetails);
 
   const [selectedVariant, setSelectedVariant] = useState(
     item.variants && item.variants.length > 0 ? item.variants[0] : null
@@ -36,19 +32,17 @@ const StoreCard = ({ item, navigation }) => {
         source={{ uri: item.image_url || "https://via.placeholder.com/150" }}
         style={styles.image}
       />
-
       <View style={styles.cardContent}>
-        <Text style={styles.name}>{item.name || "Unnamed Store"}</Text>
-
+        <Text style={[poppins.regular.h6,styles.name]}>{item.name || "Unnamed Store"}</Text>
         {/* ⭐ Info Row */}
         <View style={styles.infoRow}>
           <View style={styles.iconText}>
-            <MaterialCommunityIcons name="star-outline" size={16} color="#00BFFF" />
+            <MaterialCommunityIcons name="star-outline" size={16} color="#000" />
             <Text style={styles.infoText}>{item.rating || "0.0"}</Text>
           </View>
 
           <View style={styles.iconText}>
-            <MaterialCommunityIcons name="map-marker" size={16} color="#00BFFF" />
+            <MaterialCommunityIcons name="map-marker" size={16} color="#000" />
             <Text style={styles.infoText}>
               {item.distance ? `${item.distance} km` : "N/A"}
             </Text>
@@ -58,7 +52,7 @@ const StoreCard = ({ item, navigation }) => {
             <MaterialCommunityIcons
               name="clock-time-four-outline"
               size={16}
-              color="#00BFFF"
+              color="#000"
             />
             <Text style={styles.infoText}>{item.time || "—"}</Text>
           </View>
@@ -118,6 +112,8 @@ const CategoryStore = () => {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const profileDetails = useSelector(state => state.Auth.profileDetails);
+  
 
   const fetchStores = async () => {
     try {
@@ -126,8 +122,8 @@ const CategoryStore = () => {
 
       const payload = {
         category_id: categoryId,
-        lon: "78.1624",
-        lat: "9.9019",
+        lon: profileDetails?.primary_address?.lon,
+        lat: profileDetails?.primary_address?.lat,
         limit: "10",
         offset: "0",
         search: search.trim(),
@@ -149,11 +145,10 @@ const CategoryStore = () => {
       setLoading(false);
     }
   };
-
+  
   useEffect(() => {
     fetchStores();
-  }, [categoryId]);
-
+  }, [categoryId,search]);
   return (
     <View style={[styles.container, {
       backgroundColor: COLORS[theme].background
@@ -168,8 +163,11 @@ const CategoryStore = () => {
           value={search}
           onChangeText={setSearch}
           onSubmitEditing={fetchStores}
-          style={styles.searchInput}
-          placeholderTextColor="#aaa"
+          style={[styles.searchInput,{
+            color:"#000"
+          }]}
+          placeholderTextColor={COLORS[theme].black}
+
         />
       </View>
 
@@ -243,6 +241,8 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 17,
     fontWeight: "700",
+    color:"#000",
+    textTransform: "capitalize",
   },
   infoRow: {
     flexDirection: "row",
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: "#444",
+    color: "#000",
     marginLeft: 4,
   },
   tagContainer: {

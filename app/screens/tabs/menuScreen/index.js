@@ -22,11 +22,13 @@ import DeviceInfo from 'react-native-device-info';
 import VersionCheck from 'react-native-version-check';
 
 // --- Logout Section ---
-const LogoutSection = () => {
+const LogoutSection = ({ profileD, accessToken }) => {
   const { theme } = useTheme();
   const navigation = useNavigation();
   const { t } = useTranslation();
-  const handleLogout = () => {
+  const handleLogout = async (profileD) => {
+    // Alert.alert(accessToken);
+    // return;
     Alert.alert(
       t('Confirm Logout'),
       t('Are you sure you want to logout?'),
@@ -34,7 +36,27 @@ const LogoutSection = () => {
         { text: t('cancel'), style: 'cancel' },
         {
           text: t('yes'),
-          onPress: () => {
+          onPress: async () => {
+            try {
+              const data = await fetchData('logout/', 'POST', {
+                user_id: profileD?.user_id,
+              }, {
+                Authorization: `${accessToken}`,
+                user_id: profileD.user_id,
+                type: 'user',
+              });
+              if (data?.status == 'true') {
+                AsyncStorage.clear();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'GetStartedScreen' }],
+                });
+              }
+            } catch (error) {
+              console.error('profile API Error:', error);
+            } finally {
+              // setLoading(false);
+            }
             AsyncStorage.clear();
             navigation.reset({
               index: 0,
@@ -49,7 +71,7 @@ const LogoutSection = () => {
 
   return (
     <View style={{ backgroundColor: COLORS[theme].viewBackground }}>
-      <TouchableOpacity onPress={handleLogout} style={sectionRow}>
+      <TouchableOpacity onPress={() => handleLogout(profileD)} style={sectionRow}>
         <View style={leftRow}>
           <MaterialIcon name="logout" size={wp(5)} color={COLORS[theme].textPrimary} />
           <Text style={[poppins.medium.h7, { color: COLORS[theme].textPrimary }]}>
@@ -115,15 +137,12 @@ const LangSection = () => {
 const MoreScreen = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const [availVersion] = useState('1.0.0'); // or fetch from config or constants
   const profileD = useSelector(state => state.Auth.profile);
   const profile = useSelector(state => state.Auth.profileDetails);
-
   const navigation = useNavigation();
   const accessToken = useSelector(state => state.Auth.accessToken);
   const dispatch = useDispatch();
   const siteDetails = useSelector(state => state.Auth.siteDetails);
-
   const checkUpdate = async () => {
     const currentVersion = VersionCheck?.getCurrentVersion();
     // const latestVersion = await VersionCheck.getLatestVersion();
@@ -138,7 +157,6 @@ const MoreScreen = () => {
       console.log('App is up to date.');
     }
   };
-
   const shouldUpdate = (currentVersion, minVersion) => {
     const current = currentVersion.split('.').map(Number); // [1, 0, 3]
     const minimum = minVersion.split('.').map(Number);     // [1, 0, 5]
@@ -150,24 +168,30 @@ const MoreScreen = () => {
     }
     return false; // Versions are equal
   };
-
   useFocusEffect(
     useCallback(() => {
       checkUpdate();
       const fetchProfileData = async () => {
         if (!accessToken || !profileD?.user_id) return;
-        // console.log('profile', '2');
         try {
           const data = await fetchData('userprofile/' + profileD?.user_id, 'GET', null, {
             Authorization: `${accessToken}`,
             user_id: profileD.user_id,
             type: 'user',
           });
-          console.log('userprofile', JSON.stringify(data));
-          dispatch({
-            type: 'PROFILE_DETAILS',
-            payload: data,
-          });
+          if (data?.status == 'true') {
+            dispatch({
+              type: 'PROFILE_DETAILS',
+              payload: data,
+            });
+          }
+          else {
+            AsyncStorage.clear();
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'GetStartedScreen' }],
+            });
+          }
         } catch (error) {
           console.error('profile API Error:', error);
         } finally {
@@ -225,11 +249,11 @@ const MoreScreen = () => {
           {/* <SectionItem icon="archive-star" navigation={navigation} label="reviews" navigationPath='TermsAndCondtions' /> */}
           <SectionItem icon="shield-check" navigation={navigation} label="Terms and Conditions" navigationPath='TermsAndCondtions' />
           <SectionItem icon="trackpad-lock" navigation={navigation} label="Privacy and Policy" navigationPath='PrivacyandPolicy' />
-          
-           {/* <SectionItem icon="cart-outline" navigation={navigation} label="My cart" navigationPath='Mycart' /> */}
+
+          {/* <SectionItem icon="cart-outline" navigation={navigation} label="My cart" navigationPath='Mycart' /> */}
           <ThemeSection />
           {/* <LangSection /> */}
-          <LogoutSection />
+          <LogoutSection profileD={profileD} accessToken={accessToken} />
           {/* App Version Info */}
           <View style={{ backgroundColor: COLORS[theme].viewBackground }}>
             <View style={sectionRow}>
