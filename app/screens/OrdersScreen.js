@@ -315,7 +315,6 @@ const OrdersScreen = () => {
       {...(!locationmodalVisible && !otherModal ? panResponder.panHandlers : {})}
     >
       <HeaderBar title={t('Pickup/drop') || 'Orders'} showBackButton={false}  />
-      <FlashMessage style={{ zIndex: 100 }} position="top" />
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         {routes.map(route => (

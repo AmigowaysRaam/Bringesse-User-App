@@ -7,7 +7,7 @@ import { COLORS } from '../resources/colors';
 import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 
-const StoreListData = ({ banner }) => {
+const StoreListData = ({ banner,useCurrentLocation }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation();
@@ -37,11 +37,10 @@ const StoreListData = ({ banner }) => {
             {t('No Stores Available at this Location')}
           </Text>
         )}
-
         renderItem={({ item }) => (
           <TouchableOpacity
             style={[styles.card, { backgroundColor: COLORS[theme].cardBackground }]}
-            onPress={() => navigation.navigate('ProductList', { storeId: item.store_id })}
+            onPress={() => navigation.navigate('ProductList', { storeId: item.store_id,useCurrentLocation })}
           >
             <Text>
             </Text>

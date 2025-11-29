@@ -15,7 +15,7 @@ if linkage != nil
 end
 
 
-target 'bringessedelivery_partner' do
+target 'bringesseUser' do
   config = use_native_modules!
 
   use_frameworks! :linkage => :static
@@ -27,7 +27,7 @@ target 'bringessedelivery_partner' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  target 'bringessedelivery_partnerTests' do
+  target 'bringesseUserTests' do
     inherit! :complete
     # Pods for testing
   end

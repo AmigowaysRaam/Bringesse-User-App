@@ -26,7 +26,6 @@ export default function GetStartedScreen() {
   const {
     actions: { APP_REGISTER_OTP_LOGIN_API_CALL, APP_REGISTER_LOGIN_API_CALL },
   } = useAuthHoc();
-
   const { theme } = useTheme();
   const [phone, setPhone] = useState(__DEV__ ? "8110933318" : "");
   const [otpSent, setOtpSent] = useState(false);
@@ -44,6 +43,7 @@ export default function GetStartedScreen() {
         const token = await messaging().getToken();
         const id = await DeviceInfo.getUniqueId();
         setFcmToken(token);
+        console.log(token,"Fcm token")
         setDeviceId(id);
       } catch (error) {
         console.log('Error fetching device info:', error);

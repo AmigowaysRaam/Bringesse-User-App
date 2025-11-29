@@ -19,9 +19,8 @@ import ConfirmationModal from './ConfirmModal';
 import { useNavigation } from '@react-navigation/native';
 import OrderReviewModal from './OrderReviewModal';
 import DriverDetails from './DriverDetails';
-
+import messaging from '@react-native-firebase/messaging';
 const ORDER_STEPS = ['pending', 'processing', 'ready', 'delivered'];
-
 const OrderDetail = ({ route }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -38,7 +37,6 @@ const OrderDetail = ({ route }) => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewType, setReviewType] = useState(null);
-
   // ⭐⭐ REUSABLE ROW COMPONENT ⭐⭐
   const LabelValue = ({ label, value, valueColor }) => (
     <View style={styles.rowBetween}>
@@ -47,7 +45,7 @@ const OrderDetail = ({ route }) => {
       </Text>
       <Text
         style={[
-          poppins.semi_bold.h8,
+          poppins.semi_bold.h7,
           { color: valueColor || COLORS[theme].textPrimary },
         ]}
       >
@@ -71,6 +69,7 @@ const OrderDetail = ({ route }) => {
     try {
       setLoading(true);
       const data = await fetchData('orderdetail', 'POST', payload, headers);
+      console.log(data, "datadatadata")
       if (data?.status === 'true') setOrderDetail(data);
       else setOrderDetail(null);
     } catch (err) {
@@ -81,6 +80,10 @@ const OrderDetail = ({ route }) => {
     }
   }, [accessToken, profile?.user_id, orderId]);
 
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async () => fetchOrderDetail());
+    return unsubscribe;
+  }, [fetchOrderDetail]);
   useEffect(() => {
     fetchOrderDetail();
   }, [fetchOrderDetail]);
@@ -124,10 +127,7 @@ const OrderDetail = ({ route }) => {
   const handleCloseModal = () => {
     setShowReviewModal(false);
     fetchOrderDetail();
-
   }
-
-
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     return moment(dateStr).format('MMM DD, YYYY • hh:mm A');
@@ -136,7 +136,6 @@ const OrderDetail = ({ route }) => {
   const renderStatusProgress = (status) => {
     const currentIndex = ORDER_STEPS.indexOf(status);
     const statusTimes = {};
-
     if (orderDetail?.status_history) {
       orderDetail.status_history.forEach((item) => {
         statusTimes[item.status] = item.time;
@@ -181,7 +180,6 @@ const OrderDetail = ({ route }) => {
                   ]}
                 />
               )}
-
               <Text
                 style={[
                   poppins.regular.h9,
@@ -333,7 +331,7 @@ const OrderDetail = ({ route }) => {
           <LabelValue label="Delivery Type" value={orderDetail.delivery_type} />
           <LabelValue
             label="OTP"
-            value={orderDetail.otp}
+            value={orderDetail?.userOtp}
             valueColor={COLORS[theme].accent}
           />
           <LabelValue
@@ -454,7 +452,7 @@ const OrderDetail = ({ route }) => {
         {/* CANCEL BUTTON */}
         {orderDetail.order_status === 'pending' ? (
           <TouchableOpacity
-            style={[styles.cancelButton, { backgroundColor: COLORS[theme].accent }]}
+            style={[styles.cancelButton, { backgroundColor: COLORS[theme].validation }]}
             onPress={() => setShowCancelModal(true)}
           >
             <Text style={styles.cancelButtonText}>Cancel Order</Text>
@@ -477,18 +475,19 @@ const OrderDetail = ({ route }) => {
             {orderDetail.order_status}
           </Text>
         )}
-
         {/* TRACK ORDER */}
-        {orderDetail?.tracking && orderDetail.order_status === 'accepted' && (
-          <TouchableOpacity
-            style={[styles.cancelButton, { backgroundColor: COLORS[theme].accent }]}
-            onPress={() =>
-              navigation.navigate('FoodDeliveryTrack', { data: orderDetail })
-            }
-          >
-            <Text style={styles.cancelButtonText}>Track Order</Text>
-          </TouchableOpacity>
-        )}
+        {orderDetail?.tracking && 
+          orderDetail.order_status === 'ready' || orderDetail.order_status === 'shipped' &&
+           (
+            <TouchableOpacity
+              style={[styles.cancelButton, { backgroundColor: COLORS[theme].accent }]}
+              onPress={() =>
+                navigation.navigate('FoodDeliveryTrack', { data: orderDetail })
+              }
+            >
+              <Text style={styles.cancelButtonText}>Track Order</Text>
+            </TouchableOpacity>
+          )}
       </ScrollView>
       {/* Cancel Modal */}
       <ConfirmationModal
@@ -585,11 +584,10 @@ const styles = StyleSheet.create({
     marginHorizontal: wp(2),
     marginTop: wp(4),
   },
-
   cancelButtonText: {
     color: '#fff',
     textAlign: 'center',
-    ...poppins.semi_bold.h7,
+    fontWeight: '900'
   },
 });
 

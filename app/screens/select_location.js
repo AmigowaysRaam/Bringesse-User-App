@@ -242,8 +242,6 @@ export default function SelectLocationScreen() {
             ]
         );
     };
-
-
     // Render Each Address Item
     const renderItem = ({ item }) => (
         <TouchableOpacity
@@ -258,7 +256,8 @@ export default function SelectLocationScreen() {
         >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <MaterialCommunityIcons name={item.is_default ==
-                    'true' ? "check-circle" : "home-outline"} size={22} color="#000" />
+                    'true' ? "check-circle" : "home-outline"} size={22} color={item.is_default ==
+                    'true'? "#009a44":"#000"} />
                 <View style={{ marginLeft: 10, flex: 1 }}>
                     <Text style={styles.addressTitle}>{item.address_type || 'Address'}</Text>
                     <Text style={styles.addressText} numberOfLines={3}>
@@ -282,8 +281,6 @@ export default function SelectLocationScreen() {
             </View>
         </TouchableOpacity>
     );
-
-
     return (
         <View style={[styles.container, {
             backgroundColor: COLORS[useTheme().theme].background
@@ -293,13 +290,11 @@ export default function SelectLocationScreen() {
                 style={styles.optionCard}
                 onPress={() => navigation.navigate('AddAddress')}
             >
-
-                <MaterialCommunityIcons name="plus" size={20} color="#e74c3c" />
+                <MaterialCommunityIcons name="plus" size={20} color="#009a44" />
                 <Text style={[styles.optionTitle, { marginLeft: 10 }]}>Add Address</Text>
             </TouchableOpacity>
-
             {loading ? (
-                <ActivityIndicator size="large" color="#e74c3c" style={{ marginTop: 20 }} />
+                <ActivityIndicator size="large" color="#009a44" style={{ marginTop: 20 }} />
             ) : (
                 <FlatList
                     data={addresses}
@@ -370,9 +365,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         borderRadius: wp(2),
         marginBottom: 10,
-        width: wp(40), alignSelf: "flex-end", borderWidth: wp(0.5), borderColor: "#e74c3c"
+        width: wp(40), alignSelf: "flex-end", borderWidth: wp(0.5), borderColor: "#009a44"
     },
-    optionTitle: { fontSize: 15, fontWeight: '500', color: '#e74c3c' },
+    optionTitle: { fontSize: 15, fontWeight: '500', color: '#009a44' },
     addressCard: {
         // backgroundColor: '#fff',
         borderRadius: 10,
@@ -380,7 +375,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     defaultAddress: {
-        borderColor: '#e74c3c',
+        borderColor: '#009a44',
         borderWidth: 1,
     },
     addressTitle: { fontSize: 15, fontWeight: '600', color: '#000' },

@@ -50,12 +50,11 @@ const SingleSelectModal = ({
             </TouchableOpacity>
         );
     };
-
     return (
         <Modal
             visible={visible}
             transparent
-            animationType="slide"
+            animationType="none"
             onRequestClose={onDismiss}
         >
             <View style={styles.wrapper}>
@@ -63,7 +62,6 @@ const SingleSelectModal = ({
                 <TouchableWithoutFeedback onPress={onDismiss}>
                     <View style={styles.overlay} />
                 </TouchableWithoutFeedback>
-
                 {/* Bottom Sheet Container */}
                 <View
                     style={[

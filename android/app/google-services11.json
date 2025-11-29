@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "989733009995",
-    "project_id": "bringessedeliverypartner",
-    "storage_bucket": "bringessedeliverypartner.firebasestorage.app"
+    "project_number": "904059409515",
+    "project_id": "bringesse-customer-application",
+    "storage_bucket": "bringesse-customer-application.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:989733009995:android:c221319273b6ec7d996bce",
+        "mobilesdk_app_id": "1:904059409515:android:5ff6662793e343bc708d2e",
         "android_client_info": {
           "package_name": "com.app.bringessedeliveryuserapp"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAebIczLvdHI1zy2Vz11oMoed6Zme2pg7Y"
+          "current_key": "AIzaSyD4L05NdbkN5DEUwV2RuS-A2T0paSdFPCk"
         }
       ],
       "services": {

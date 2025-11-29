@@ -29,14 +29,14 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     // buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
-
     defaultConfig {
         applicationId "com.app.bringessedeliveryuserapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 29
-        versionName '1.2.1'
+        versionCode 32
+        versionName '1.2.4'
     }
+
     // Signing configuration (using debug keystore for both)
     signingConfigs {
         debug {
@@ -46,8 +46,6 @@ android {
             keyPassword 'bringessedeliveryuserapp'
         }
         release {
-            // Using the same as debug for now
-            // signingConfig signingConfigs.debug
             storeFile file('bringessedeliveryuserapp.jks')
         storePassword 'bringessedeliveryuserapp'
         keyAlias 'bringessedeliveryuserapp'
@@ -67,21 +65,11 @@ android {
         }
     }
 }
-
 dependencies {
-    // React Native core (version auto-managed)
     implementation("com.facebook.react:react-android")
-
-    // Firebase Cloud Messaging
     implementation 'com.google.firebase:firebase-messaging:24.1.0'
-
-    // Google Play Services (Location)
     implementation 'com.google.android.gms:play-services-location:21.0.1'
-
-    // Razorpay Payment Gateway
     implementation 'com.razorpay:checkout:1.6.33'
-
-    // JavaScript engine selection
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

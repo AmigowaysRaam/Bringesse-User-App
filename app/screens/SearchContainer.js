@@ -31,11 +31,11 @@ const SearchContainer = ({ banner }) => {
   }, [banner?.category]);
 
   if (!Array.isArray(banner?.category) || banner?.category.length === 0) {
-    return <Text>No categories available</Text>;
+    return <Text style={[poppins.semi_bold.h7,{ alignSelf: "center", marginTop: hp(10),color:COLORS[theme].textPrimary }]}>No categories available</Text>;
   }
 
   return (
-    <TouchableOpacity onPress={()=>navigation.navigate('RevenueScreen')} style={[styles.card, { backgroundColor: COLORS[theme].background }]}>
+    <TouchableOpacity onPress={() => navigation.navigate('RevenueScreen')} style={[styles.card, { backgroundColor: COLORS[theme].background }]}>
       <View style={styles.userInfo}>
         <Image
           source={IMAGE_ASSETS?.search_filled}
@@ -43,7 +43,7 @@ const SearchContainer = ({ banner }) => {
           resizeMode="cover"
         />
         <View style={styles.userTextContainer}>
-          <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary,textTransform:"capitalize" }]}>
+          <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
             {`Search for ${banner?.category[currentIndex]?.category_name}...`}
           </Text>
         </View>

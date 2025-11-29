@@ -304,7 +304,7 @@ export default function AddAddressScreen() {
                                 value={search}
                                 onChangeText={fetchSuggestions}
                             />
-                            <MaterialCommunityIcons name="magnify" size={26} color="#e74c3c" />
+                            <MaterialCommunityIcons name="magnify" size={26} color="#009a44" />
                         </View>
 
                         {showSuggestions && suggestions.length > 0 && (
@@ -360,7 +360,7 @@ export default function AddAddressScreen() {
                                 <MaterialCommunityIcons
                                     name="crosshairs-gps"
                                     size={18}
-                                    color="#e74c3c"
+                                    color="#009a44"
                                 />
                                 <Text style={styles.locationText}>Use current location</Text>
                             </TouchableOpacity>
@@ -370,7 +370,7 @@ export default function AddAddressScreen() {
                         <View style={styles.formSection}>
                             <Text style={styles.sectionLabel}>Delivery details</Text>
                             <TouchableOpacity style={styles.locationRow}>
-                                <MaterialCommunityIcons name="map-marker" size={18} color="#e74c3c" />
+                                <MaterialCommunityIcons name="map-marker" size={18} color="#009a44" />
                                 <Text style={styles.locationCity}>
                                     {address ? address : 'Fetching location...'}
                                 </Text>
@@ -482,7 +482,7 @@ const styles = StyleSheet.create({
         borderRadius: 30,
         elevation: 3,
     },
-    locationText: { marginLeft: 6, color: '#e74c3c', fontWeight: '500' },
+    locationText: { marginLeft: 6, color: '#009a44', fontWeight: '500' },
     formSection: {
         paddingHorizontal: 16,
         marginTop: 15,
@@ -516,11 +516,11 @@ const styles = StyleSheet.create({
         marginRight: 8,
         alignItems: 'center',
     },
-    activeTypeBtn: { backgroundColor: '#e74c3c', borderColor: '#e74c3c' },
+    activeTypeBtn: { backgroundColor: '#009a44', borderColor: '#009a44' },
     addressTypeText: { color: '#555', fontWeight: '500' },
     activeTypeText: { color: '#fff' },
     saveBtn: {
-        backgroundColor: '#e74c3c',
+        backgroundColor: '#009a44',
         marginTop: 20,
         borderRadius: 8,
         paddingVertical: 14,

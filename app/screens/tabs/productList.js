@@ -17,14 +17,12 @@ import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import { fetchData } from "../../api/api";
 import { poppins } from "../../resources/fonts";
-
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
 const ProductListScreen = ({ route }) => {
   const navigation = useNavigation();
-  const { storeId } = route.params;
+  const { storeId, useCurrentLocation } = route.params;
   const [expandTop, setExpandTop] = useState(true);
   const [expandBest, setExpandBest] = useState(false);
   const [storeData, setStoreData] = useState(null);
@@ -55,9 +53,9 @@ const ProductListScreen = ({ route }) => {
   useEffect(() => {
     if (storeData?.top_products) {
       setFilteredTopProducts(storeData.top_products);
+      // console.log(JSON.stringify(storeData.top_products,null,2))
     }
   }, [storeData]);
-
 
   // 🔁 Re-fetch cart count every time tab bar gains focus or user returns to it
   useFocusEffect(
@@ -65,9 +63,15 @@ const ProductListScreen = ({ route }) => {
       fetchCartCount();
     }, [navigation])
   );
+
   // ✅ Fetch Cart Count from API
   const fetchCartCount = async () => {
     // if (!accessToken || !profileDetails?.user_id) return;
+    if (!accessToken || !profileDetails?.primary_address?.lat || !profileDetails?.primary_address?.lat) {
+      setLoading(false);
+      ToastAndroid.show('To continue Shopping Add Address', ToastAndroid.SHORT)
+      return
+    }
     try {
       const data = await fetchData(
         'cart/get',
@@ -84,9 +88,17 @@ const ProductListScreen = ({ route }) => {
         }
       );
       if (data?.status === true) {
-        setCartSummary(data.data?.items || {});
+        if(data.data?.items.length){
+          setCartSummary(data.data?.items)
+        }
+        else{
+         setCartSummary({ totalItems:0, totalPrice :0});
+         setCartItems({})
+        }
+        // setCartSummary(data.data?.items || {});
       } else {
         ToastAndroid.show(data.message || 'Unable to fetch cart.', ToastAndroid.SHORT);
+        setCartItems({})
       }
     } catch (error) {
       console.error('Error fetching cart data:', error);
@@ -128,10 +140,10 @@ const ProductListScreen = ({ route }) => {
           user_id: profile?.user_id,
           type: 'user',
         },
-
         body: JSON.stringify(payload),
       });
       const data = await response.json();
+      console.log(data, "datadatadatadata")
       if (data?.status) {
         const variant = selected.variant;
         setCartItems((prev) => {
@@ -148,7 +160,6 @@ const ProductListScreen = ({ route }) => {
         });
       } else {
         ToastAndroid.show(data.message, ToastAndroid.SHORT);
-        // alert("Failed to add item. Try again!");
       }
     } catch (error) {
       console.error("Add to Cart Error:", error);
@@ -338,7 +349,7 @@ const ProductListScreen = ({ route }) => {
           <View style={{ flex: 1, marginBottom: cartSummary?.length > 0 ? hp(8) : 0 }}>
 
             <ScrollView style={[styles.container, {
-              backgroundColor: COLORS[theme].backgroundcolor
+              backgroundColor: COLORS[theme].backgroundcolor,
             }]} showsVerticalScrollIndicator={false}>
               <>
                 {store && (
@@ -354,7 +365,6 @@ const ProductListScreen = ({ route }) => {
                         <MaterialCommunityIcons name="food" color="#000" size={wp(8)} />
                       </TouchableOpacity>
                     </View>
-
                     {/* <Text style={{ color: "#000" }}>{JSON.stringify(store?.isFood, null, 2)}</Text> */}
                     <Image source={{ uri: store.image_url }} style={[styles.storeImage, {
                       resizeMode: 'contain'
@@ -409,50 +419,59 @@ const ProductListScreen = ({ route }) => {
                   />
                 </TouchableOpacity>
                 <FlatList
+                  contentContainerStyle={{ paddingBottom: wp(6) }} // <-- added here
                   // extraData={filteredTopProducts}   // <— forces FlatList to re-render
                   data={filteredTopProducts}
                   keyExtractor={(item) => item.item_id.toString()}
                   renderItem={({ item }) => {
                     const variant = selectedVariantData(item);
                     const index = selectedIndexData(item);
+                    console.log(JSON.stringify(item, null, 2), "itemitemitem")
                     return (
-                      <View style={styles.productCard}>
-                        <Image source={{ uri: item.image_url }} style={styles.productImage} />
-
-                        <Text
-                          style={[
-                            styles.productName,
-                            { color: COLORS[theme].black, textTransform: "capitalize" }
-                          ]}
-                        >
-                          {item.name}
-                        </Text>
-
-                        {/* Variant selector (uncomment if needed)
-        {item.variant_list?.length > 0 && (
-          <TouchableOpacity
-            style={styles.variantSelector}
-            onPress={() => setVariantModal({ visible: true, item })}
-          >
-            <Text style={styles.variantText}>
-              {variant?.name} {variant?.unit}
-            </Text>
-            <MaterialCommunityIcons name="chevron-down" size={22} color="#333" />
-          </TouchableOpacity>
-        )} 
-        */}
-                        <View style={styles.priceRow}>
-                          <Text style={[styles.price, { color: COLORS[theme].black }]}>
-                            ₹{variant?.offer_price || variant?.price}
-                          </Text>
-
-                          {item.offer_available === "true" && (
-                            <Text style={[styles.oldPrice, { color: COLORS[theme].black }]}>
-                              ₹{variant?.price}
+                      <View style={[styles.productCard, {
+                      }]}>
+                        <View style={{ flexDirection: "row" }}>
+                          <Image source={{ uri: item.image_url }} style={styles.productImage} />
+                          <View style={[styles.priceRow, {
+                            marginHorizontal: wp(2)
+                          }]}>
+                            <Text
+                              style={[
+                                styles.productName,
+                                { color: COLORS[theme].black, textTransform: "capitalize" }
+                              ]}
+                            >
+                              {item.name}
                             </Text>
-                          )}
+                            <Text style={[styles.price, { color: COLORS[theme].black }]}>
+                              ₹{variant?.offer_price || variant?.price}
+                            </Text>
+                            {item.offer_available === "true" && (
+                              <Text style={[styles.oldPrice, { color: COLORS[theme].black }]}>
+                                ₹{variant?.price}
+                              </Text>
+                            )}
+                            <Text
+                              style={[poppins.regular.h9,
+                              { color: COLORS[theme].black, textTransform: "capitalize" }
+                              ]}
+                            >
+                              {item?.noOfDaysToReturn ? `Need a return? You have ${item?.noOfDaysToReturn} days`:"No Return"}
+                            </Text>
+                          </View>
                         </View>
-
+                        {/* Variant selector (uncomment if ne1444eded) */}
+                        {/* {item.variant_list?.length > 0 && (
+                          <TouchableOpacity
+                            style={styles.variantSelector}
+                            onPress={() => setVariantModal({ visible: true, item })}
+                          >
+                            <Text style={styles.variantText}>
+                              {variant?.name} {variant?.unit}
+                            </Text>
+                            <MaterialCommunityIcons name="chevron-down" size={22} color="#333" />
+                          </TouchableOpacity>
+                        )} */}
                         {cartItems[item.item_id] ? (
                           <View style={styles.qtyRow}>
                             <TouchableOpacity
@@ -476,7 +495,7 @@ const ProductListScreen = ({ route }) => {
                             onPress={() => addToCart(item)}
                             style={styles.addButton}
                           >
-                            <Text style={styles.addButtonText}>Add to cart</Text>
+                            <Text style={styles.addButtonText}>{"Add to cart"}</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -490,16 +509,6 @@ const ProductListScreen = ({ route }) => {
                   )}
                 />
 
-                {/* <TouchableOpacity onPress={() => toggleExpand("best")} style={styles.sectionHeader}>
-                <Text style={[styles.sectionTitle, {
-                  color: COLORS[theme].textPrimary
-                }]}>Best Seller</Text>
-                <MaterialCommunityIcons
-                  name={expandBest ? "chevron-up" : "chevron-down"}
-                  size={24}
-                  color="#000"
-                />
-              </TouchableOpacity> */}
                 {expandBest && (
                   <View style={styles.productCard}>
                     <Text style={{ textAlign: "center", color: "#888" }}>
@@ -610,14 +619,14 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: "700" },
   productCard: {
     backgroundColor: "#fff",
-    borderRadius: 16, padding: 10, marginTop: 8,
+    borderRadius: wp(1), padding: wp(2), margin:wp(1),
     shadowColor: "#000", shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4, elevation: 2,
   },
-  productImage: { width: "100%", height: 130, borderRadius: 12 },
+  productImage: { width: "25%", height: hp(10), borderRadius: 12 },
   productName: { fontSize: 16, fontWeight: "bold", marginTop: 8 },
-  priceRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  priceRow: { flexDirection: "column", },
   price: { fontSize: 18, fontWeight: "bold" },
   oldPrice: { fontSize: 16, color: "#999", textDecorationLine: "line-through" },
   addButton: {

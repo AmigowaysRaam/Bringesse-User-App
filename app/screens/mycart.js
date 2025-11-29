@@ -1,10 +1,9 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import RazorpayCheckout from 'react-native-razorpay';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, ActivityIndicator, Alert,
-  ScrollView, ToastAndroid, TextInput,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, ActivityIndicator, Alert, ScrollView, ToastAndroid, NativeModules, NativeEventEmitter,
 } from 'react-native';
 import UseProfileHook from '../hooks/profile-hooks';
 import { useSelector } from 'react-redux';
@@ -16,12 +15,16 @@ import { poppins } from '../resources/fonts';
 import { fetchData } from '../api/api';
 import SingleSelectModal from '../components/header/SingleSelect';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import HyperSDK from "hyper-sdk-react";
+import PaymentWebView from './PaymentWeb';
+import FlashMessage, { showMessage } from 'react-native-flash-message';
 export default function CartList({ route }) {
   const navigation = useNavigation();
   const [items, setItems] = useState([]);
   const [storeId, setStoreId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const eventEmitter = useRef(null);
   const accessToken = useSelector(state => state.Auth.accessToken);
   const { showBackArrow } = route.params || {};
   const { profile } = UseProfileHook();
@@ -35,10 +38,15 @@ export default function CartList({ route }) {
   const [showtaxSummary, setShowTaxSummary] = useState(false);
   const [grandTotal, setGrandTotal] = useState(0);
   const [cdata, setcdata] = useState(null);
+  const [Initializing, setIsInitiated] = useState(false);
   const siteDetails = useSelector(state => state.Auth.siteDetails);
 
   // ✅ Fetch Cart Data
   const fetchCart = async () => {
+    if (!profileDetails?.primary_address?.lat || !profileDetails?.primary_address?.lat) {
+      setLoading(false);
+      return
+    }
     try {
       setLoading(true);
       setError(null);
@@ -80,7 +88,7 @@ export default function CartList({ route }) {
             // grandTotal: data.data.grand_total || 0,
           };
         });
-        console.log('✅ Fetched Cart Items:', data?.data);
+        // console.log('✅ Fetched Cart Items:', data?.data);
         setItems(formatted);
         setGrandTotal(data.data.grand_total)
         setStoreId(data.data.storeDetails?._id);
@@ -104,7 +112,6 @@ export default function CartList({ route }) {
       setLoading(false);
     }
   };
-
   // ✅ Fetch Vehicle Types
   const fetchVehicleType = async () => {
     if (!accessToken || !profile?.user_id) return;
@@ -130,67 +137,161 @@ export default function CartList({ route }) {
       fetchVehicleType();
     }, [profileDetails?.primary_address?.lat, selectedVehicle])
   );
-  // ✅ Handle Razorpay Payment
+  useEffect(() => {
+    const eventEmitter = new NativeEventEmitter(NativeModules.HyperSdkReact);
+    const eventListener = eventEmitter.addListener("HyperEvent", (resp) => {
+      const data = JSON.parse(resp);
+      const event = data.event || "";
+      // console.log(JSON.stringify(items))
+      // Alert.alert(JSON.stringify(items))
+      switch (event) {
+        case "initiate_result":
+          // JusPay SDK initialized
+          console.log("initiate_result");
+          break;
+        case "hide_loader":
+          // Stop loading indicators if you have any
+          console.log("hide_loader");
+          break;
+        // 🔥 PAYMENT FINAL RESULT from JusPay
+        case "process_result":
+          const error = data.error || false;
+          const payload = data.payload || {};
+          const status = payload.status || ""; // charged, failed, aborted, etc
+          const pi = payload.paymentInstrument || "";
+          const pig = payload.paymentInstrumentGroup || "";
+          console.log("JusPay Process Result:", data);
+          if (!error) {
+            // SUCCESS CASE (status should be "charged")
+            ToastAndroid.show("Payment Success!", ToastAndroid.LONG);
+            sendPayment(payload, 'juspay');
+          } else {
+            // FAILURE / CANCELLATION / ERROR CASE
+            const errorCode = data.errorCode || "";
+            const errorMessage = data.errorMessage || "";
+            switch (status) {
+              case "backpressed":
+                ToastAndroid.show("Payment cancelled by user.", ToastAndroid.LONG);
+                break;
+              case "user_aborted":
+                ToastAndroid.show("Payment Aborted.", ToastAndroid.LONG);
+                break;
+              case "pending_vbv":
+              case "authorizing":
+                ToastAndroid.show("Payment Pending...", ToastAndroid.LONG);
+                break;
+              case "authorization_failed":
+              case "authentication_failed":
+              case "api_failure":
+                ToastAndroid.show("Payment Failed!", ToastAndroid.LONG);
+                break;
+              case "new":
+                ToastAndroid.show("Payment Failed!", ToastAndroid.LONG);
+                break;
+              default:
+                ToastAndroid.show("Payment Failed!", ToastAndroid.LONG);
+                break;
+            }
+          }
+          break;
+        default:
+          console.log("Unhandled JusPay Event:", data);
+          break;
+      }
+    });
+
+    return () => {
+      eventListener.remove();
+    };
+  }, []);
+  // useEffect(() => {
+  //   showMessage({
+  //     message: 'data?.message',
+  //     type: 'info'
+  //   })
+  // }, [])
   const handlePayment = async () => {
-    // Alert.alert(siteDetails?.razorKey);
-    // return
     if (!selectedVehicle) {
-      Alert.alert('Please select a vehicle type before proceeding.');
+      Alert.alert("Please select a vehicle type before proceeding.");
       return;
     }
     if (!profileDetails?.primary_address?.lon) {
-      navigation.navigate('SelectLocation');
+      navigation.navigate("SelectLocation");
       return;
     }
     setLoading(true);
     try {
-      const amount = grandTotal;
-      const currency = 'INR';
       const user_id = profile?.user_id;
-      const response = await fetch('https://bringesse.com:3003/api/createnonce', {
-        method: 'POST',
+      const response = await fetch("https://bringesse.com:3003/api/createnonce", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: accessToken,
           user_id: user_id,
-          type: 'user',
+          type: "user",
         },
-        body: JSON.stringify({ amount, currency, user_id }),
+        body: JSON.stringify({
+          amount: grandTotal,
+          currency: "INR",
+          user_id: user_id,
+        }),
       });
       const data = await response.json();
-      // Alert.alert('Payment Data', JSON.stringify(data));
-      if (data?.status !== "true") {
-        throw new Error('Failed to create payment order');
+      console.log("Nonce API Response:", data);
+      const isRazorpay = data?.gateway === "razorpay";
+      // =======================
+      // 🔹 JUSPAY FLOW
+      // =======================
+      if (!isRazorpay) {
+        const payload = data?.order?.sdk_payload;
+        if (!payload) {
+          Alert.alert("Error", "Invalid SDK payload from server.");
+          return;
+        }
+        console.log("Initiating JusPay...", payload);
+        try {
+          HyperSDK.process(JSON.stringify(payload));
+        } catch (sdkErr) {
+          console.log("JusPay Error:", sdkErr);
+          Alert.alert("JusPay Error", sdkErr.message);
+        }
+        return;
       }
+      // =======================
+      // 🔸 RAZORPAY FLOW
+      // =======================
       const { amount: orderAmount, order_id } = data;
       const options = {
-        description: 'Bringesse Order Payment',
-        currency: siteDetails?.currency_code,
-        key: __DEV__ ? 'rzp_test_RTea60R3z2WHEn' : siteDetails?.razorKey,//siteDetails?.razorKey, // Replace with your actual Key ID
+        description: "Bringesse Order Payment",
+        currency: siteDetails?.currency_code ?? "INR",
+        key: siteDetails?.razorKey,
         amount: orderAmount,
-        name: 'Bringesse',
-        order_id,
+        name: "Bringesse",
+        order_id: order_id,
         prefill: {
           contact: profile?.phone_no,
-          name: 'Customer',
+          name: profile?.name || "Customer",
         },
-        theme: { color: '#00BFA6' },
+        theme: { color: "#00BFA6" },
       };
       RazorpayCheckout.open(options)
-        .then(paymentResponse => {
-          sendPayment(paymentResponse)
+        .then((paymentResponse) => {
+          console.log("Razorpay Success:", paymentResponse);
+          sendPayment(paymentResponse, 'razorpay');
         })
-        .catch(error => {
-          // Alert.alert('Payment Failed', error.description || 'Transaction cancelled.');
-          ToastAndroid.show('Payment Failed!', ToastAndroid.SHORT);
+        .catch((error) => {
+          console.log("Razorpay Error:", error);
+          ToastAndroid.show("Payment Failed!", ToastAndroid.SHORT);
         });
-    } catch (error) {
-    }
-    finally {
+    } catch (err) {
+      console.log("Payment Error:", err);
+      Alert.alert("Payment Error", err.message);
+    } finally {
       setLoading(false);
     }
   };
-  const sendPayment = async (paymentResponse) => {
+  const sendPayment = async (paymentResponse, pg) => {
+    console?.log(paymentResponse, "paymentResponse")
     if (!accessToken || !profile?.user_id) return;
     try {
       // 🧾 Format cart items dynamically
@@ -206,7 +307,6 @@ export default function CartList({ route }) {
         subTotal: item.subTotal,
         variantIndex: item.variantIndex,
       }));
-
       // 🧾 Format tax summary dynamically
       const formattedTaxes = taxSummary?.map(tax => ({
         name: tax.name || "",
@@ -219,8 +319,9 @@ export default function CartList({ route }) {
         items: JSON.stringify(formattedItems),
         taxes: JSON.stringify(formattedTaxes),
         categoryoffer_info: JSON.stringify(cdata?.categoryoffer_info || []),
-        vehicle_cat: selectedVehicle?.value,
+
         // Direct values
+        vehicle_cat: selectedVehicle?.value,
         admin_offer: cdata?.admin_offer || 0,
         category_offer: cdata?.category_offer || 0,
         store_id: storeId,
@@ -231,18 +332,28 @@ export default function CartList({ route }) {
         cash_price: cdata?.grand_total || grandTotal || 0,
         packing_charge: cdata?.packing_charge || 0,
         item_count: items?.length || 0,
-        tax_total: cdata?.tax_total || formattedTaxes.reduce((sum, t) => sum + Number(t.amount || 0), 0),
+        tax_total:
+          cdata?.tax_total ||
+          formattedTaxes.reduce((sum, t) => sum + Number(t.amount || 0), 0),
         sub_total: cdata?.sub_total || 0,
         wallet_amount: cdata?.wallet_amount || 0,
         wallet_used: cdata?.wallet_used || false,
-        payment_type: "razorpay",
-        delivery_address: profileDetails?.primary_address?.location || "",
+        payment_type: pg,
+        delivery_address: profileDetails?.primary_address,
         delivery_charge: cdata?.delivery_charge || 0,
         distance: cdata?.distance || 0,
         delivery_type: selectedVehicle?.label || "Delivery",
-        razorpay_payment_id: paymentResponse?.razorpay_payment_id || "test_payment_id",
-        razorpay_order_id: paymentResponse?.razorpay_order_id || "test_order_id",
-        razorpay_signature: paymentResponse?.razorpay_signature || "test_signature",
+        // 🔥 Conditionally add Razorpay fields only when pg === 'razorpay'
+        ...(pg === "razorpay" && {
+          razorpay_payment_id: paymentResponse?.razorpay_payment_id || "test_payment_id",
+          razorpay_order_id: paymentResponse?.razorpay_order_id || "test_order_id",
+          razorpay_signature: paymentResponse?.razorpay_signature || "test_signature",
+        }),
+        lat: profileDetails?.primary_address?.lat,
+        lon: profileDetails?.primary_address?.lon,
+        primaryAddress: profileDetails?.primary_address,
+
+        order_id: paymentResponse?.orderId,
       };
       console.log("📦 Sending PayOrder Payload:", JSON.stringify(payload, null, 2));
       const response = await fetch("https://bringesse.com:3003/api/payorder/", {
@@ -256,23 +367,28 @@ export default function CartList({ route }) {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      console.log("✅ payorder response:", data);
-      if (data?.status === "true") {
+      console.log(data, "datadata")
+      showMessage({
+        message: data?.message,
+        type: 'info'
+      })
+      if (data?.status === "true" || data?.status === true) {
         // Alert.alert("✅ Order Successful", "Your payment and order have been confirmed!");
         ToastAndroid.show(data?.message, ToastAndroid.SHORT);
         navigation.navigate("OrdersHistory");
       } else {
-        Alert.alert("⚠️ Order Failed", data?.message || "Something went wrong.");
+        // Alert.alert("⚠️ Order Failed", data?.message || "Something went wrong.");
+        ToastAndroid.show(data?.message, ToastAndroid.SHORT);
+
       }
     } catch (error) {
       console.error("❌ payorder API Error:", error);
-      Alert.alert("Error", "Something went wrong while sending payment data.");
+      // Alert.alert("Error", "Something went wrong while sending payment data.");
     }
     finally {
       setLoading(false);
     }
   };
-
   // ✅ Update Cart Quantity
   const updateCart = async (item, type) => {
     try {
@@ -283,7 +399,6 @@ export default function CartList({ route }) {
         store_id: storeId,
         type,
       };
-
       const response = await fetch('https://bringesse.com:3003/api/cart/update', {
         method: 'POST',
         headers: {
@@ -292,7 +407,6 @@ export default function CartList({ route }) {
         },
         body: JSON.stringify(payload),
       });
-
       const data = await response.json();
       if (data?.data?.items.length === 0) navigation.replace('home-screen');
       if (data?.status) fetchCart();
@@ -339,6 +453,24 @@ export default function CartList({ route }) {
       </View>
     </View>
   );
+  // if(webViewUrl){
+  //   return <PaymentWebView
+  //   url={webViewUrl}
+  //   onSuccess={() => {
+  //     setWebViewUrl(null);
+  //     Alert.alert('Payment Successful');
+  //     // Call sendPayment or update order status
+  //   }}
+  //   onCancel={() => {
+  //     setWebViewUrl(null);
+  //     Alert.alert('Payment Cancelled');
+  //   }}
+  // />
+
+  // }
+  // if (true)
+  //   <FlashMessage style={{ zIndex: 100 }} position="top" />
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
       <HeaderBar title={`${cdata?.storeDetails?.name ? cdata?.storeDetails?.name : ''}` || 'My Cart'} subMenu={cdata?.storeDetails?.address || ''} showBackArrow={showBackArrow}
@@ -372,7 +504,6 @@ export default function CartList({ route }) {
             </Text>
             <MaterialIcons name="edit" size={wp(7)} color={COLORS[theme].primary} />
           </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => navigation.navigate('SelectLocation')}
             style={[styles.vehicleSelctor, {
@@ -405,7 +536,7 @@ export default function CartList({ route }) {
             }
             {selectedVehicle?.value && cartSummary?.length != 0 && cartSummary?.map((detail, index) => (
               <>
-                {/* <Text>{JSON.stringify(cartSummary)}</Text> */}
+                {/* <Text>{JSON.stringify(c artSummary)}</Text> */}
                 <TouchableOpacity
                   key={index}
                   style={styles.detailsRow}
@@ -413,7 +544,6 @@ export default function CartList({ route }) {
                 //   detail.key === 'totalTaxAmount' && setShowTaxSummary(!showtaxSummary)
                 // }
                 >
-
                   <Text style={[styles.detailLabel, { color: COLORS[theme].primary }]}>
                     {detail.label}
                   </Text>
@@ -453,9 +583,7 @@ export default function CartList({ route }) {
                 </Text>
               </View>
             </TouchableOpacity>}
-
           </View>
-
           {/* <SelectionModal visible={true} data={vehcileTypes} /> */}
           <SingleSelectModal
             visible={showVehicleModal}
@@ -480,7 +608,6 @@ export default function CartList({ route }) {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF', padding: wp(1) },
   itemRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: wp(1), borderRadius: wp(1), marginBottom: wp(0.5) },

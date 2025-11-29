@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
-  View,  Text,  StyleSheet,  Image,  TextInput,
-  FlatList,  TouchableOpacity,  ActivityIndicator,} from "react-native";
+  View, Text, StyleSheet, Image, TextInput,
+  FlatList, TouchableOpacity, ActivityIndicator,
+} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import HeaderBar from "../../../components/header";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
@@ -16,7 +17,6 @@ import { useSelector } from "react-redux";
 const StoreCard = ({ item, navigation }) => {
   const { theme } = useTheme();
   const profileDetails = useSelector(state => state.Auth.profileDetails);
-
   const [selectedVariant, setSelectedVariant] = useState(
     item.variants && item.variants.length > 0 ? item.variants[0] : null
   );
@@ -31,9 +31,10 @@ const StoreCard = ({ item, navigation }) => {
       <Image
         source={{ uri: item.image_url || "https://via.placeholder.com/150" }}
         style={styles.image}
+        resizeMode="contain"
       />
       <View style={styles.cardContent}>
-        <Text style={[poppins.regular.h6,styles.name]}>{item.name || "Unnamed Store"}</Text>
+        <Text style={[poppins.regular.h6, styles.name]}>{item.name || "Unnamed Store"}</Text>
         {/* ⭐ Info Row */}
         <View style={styles.infoRow}>
           <View style={styles.iconText}>
@@ -113,7 +114,7 @@ const CategoryStore = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const profileDetails = useSelector(state => state.Auth.profileDetails);
-  
+
 
   const fetchStores = async () => {
     try {
@@ -145,10 +146,10 @@ const CategoryStore = () => {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     fetchStores();
-  }, [categoryId,search]);
+  }, [categoryId, search]);
   return (
     <View style={[styles.container, {
       backgroundColor: COLORS[theme].background
@@ -163,8 +164,8 @@ const CategoryStore = () => {
           value={search}
           onChangeText={setSearch}
           onSubmitEditing={fetchStores}
-          style={[styles.searchInput,{
-            color:"#000"
+          style={[styles.searchInput, {
+            color: "#000"
           }]}
           placeholderTextColor={COLORS[theme].black}
 
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 17,
     fontWeight: "700",
-    color:"#000",
+    color: "#000",
     textTransform: "capitalize",
   },
   infoRow: {

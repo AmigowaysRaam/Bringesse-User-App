@@ -245,6 +245,7 @@ const MoreScreen = () => {
             gap: wp(2),
             marginHorizontal: wp(2),
           }}>
+          {/* <SectionItem icon="trackpad-lock" navigation={navigation} label="Payment screen" navigationPath='PaymentCheck' /> */}
           <SectionItem icon="cart" navigation={navigation} label="Orders History" navigationPath='OrdersHistory' />
           {/* <SectionItem icon="archive-star" navigation={navigation} label="reviews" navigationPath='TermsAndCondtions' /> */}
           <SectionItem icon="shield-check" navigation={navigation} label="Terms and Conditions" navigationPath='TermsAndCondtions' />

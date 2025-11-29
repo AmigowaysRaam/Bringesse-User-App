@@ -1,16 +1,19 @@
-import React, { useState, useCallback } from 'react';
+// ----------------- FIXED FULL HOME SCREEN WITH TOGGLE --------------------
+
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, StyleSheet, PermissionsAndroid,
-  Platform, Alert, ActivityIndicator, ScrollView, RefreshControl,
-  FlatList} from 'react-native';
+  Platform, Alert, RefreshControl, FlatList, Switch,
+  Text
+} from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { useTheme } from '../../../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { COLORS } from '../../../resources/colors';
-import { hp, wp } from '../../../resources/dimensions';
 import FlashMessage from 'react-native-flash-message';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+
 import UserToggleStatus from '../../UserToggleStatus';
 import SearchContainer from '../../SearchContainer';
 import CategoryList from '../../CategoryList';
@@ -20,31 +23,42 @@ import StoreListData from '../../StoreListData';
 import LoaderContainer from '../../LoaderContainer';
 import VersionUpgradeModal from '../../VersionUpgradeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { poppins } from '../../../resources/fonts';
+import { wp } from '../../../resources/dimensions';
+
 const HomeScreen = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const [location, setLocation] = useState(null);
+
   const [address, setAddress] = useState('');
-  const [loading, setLoading] = useState(false); // New loading state
-  const [refreshing, setRefreshing] = useState(false); // Refresh control state
-  const profile = useSelector(state => state?.Auth?.profile);
-  const accessToken = useSelector(state => state.Auth.accessToken);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [homePageData, setHomePageData] = useState(null);
+
+  // 🔥 NEW: Toggle State
+  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
+
+  const profile = useSelector(state => state.Auth.profile);
+  const accessToken = useSelector(state => state.Auth.accessToken);
   const profileDetails = useSelector(state => state.Auth.profileDetails);
+
   const navigation = useNavigation();
-  
+  const dispatch = useDispatch();
+
+  //------------------ GET PERMISSION ------------------
+
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') return true;
-    try {
 
+    try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
           title: 'Location Permission',
           message: 'App needs access to your location.',
-          buttonPositive: 'OK',
         }
       );
+
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (err) {
       console.warn('Permission error:', err);
@@ -52,169 +66,207 @@ const HomeScreen = () => {
     }
   };
 
-  // ✅ Get Address using Google Maps API
-  const getAddressFromCoords = async (latitude, longitude) => {
+  //------------------ GET ADDRESS ------------------
+
+  const getAddressFromCoords = async (lat, lon) => {
     try {
-      console.log('Fetching address for coords:', latitude, longitude);
       const response = await fetch(
-        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${9.898533},${78.165138}&key=AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc`
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc`
       );
+
       const data = await response.json();
-      console.log('Geocoding API response:', data);
-      if (data.status === 'OK' && data.results.length > 0) {
-        const formattedAddress = data.results[0]?.formatted_address;
-        setAddress(formattedAddress);
+
+      if (data.status === "OK") {
+        setAddress(data.results[0].formatted_address);
       } else {
-        console.warn('No address found for coordinates');
-        setAddress('Unknown location');
+        setAddress("Unknown location");
       }
-    } catch (error) {
-      console.error('Geocoding Error:', error);
-      setAddress('Failed to fetch address');
+    } catch (err) {
+      console.log("Address error:", err);
+      setAddress("Failed to fetch address");
     }
   };
 
-  // ✅ Get user's current location
+  //------------------ GET CURRENT LOCATION ------------------
+
   const getLocation = async () => {
     const hasPermission = await requestLocationPermission();
-    if (!hasPermission) {
-      Alert.alert('Permission Denied', 'Location permission is required.');
-      return null;
-    }
+    if (!hasPermission) return null;
+
     return new Promise((resolve, reject) => {
       Geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          // console.log(latitude, longitude, 'latitude', 'longitude');
-          setLocation({ latitude, longitude });
-          const primaryAdress = profileDetails?.primary_address;
-          if (primaryAdress && Object.keys(primaryAdress).length > 0) {
-            getAddressFromCoords(primaryAdress.lat, primaryAdress.lon);
-          } else {
-            getAddressFromCoords(latitude, longitude);  // Get the address
-          }
-          resolve({ latitude, longitude });
+        pos => {
+          resolve({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
         },
-        (error) => {
-          console.error('Geolocation error:', error);
-          Alert.alert('Location Error', error.message || 'Failed to get location.');
-          reject(error); // Rejecting the promise on error
+        err => {
+          Alert.alert("Location Error", err.message);
+          reject(err);
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 30000,
-          maximumAge: 10000,
-          forceRequestLocation: true,
-          showLocationDialog: true,
-        }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
       );
     });
   };
 
-  // Fetch data for the home screen after location is fetched
-  const getHomePageData = async (latitude, longitude) => {
-    // Alert.alert('Profile Data', JSON.stringify(profileDetails?.primary_address?.lat));
-    // fetchProfileData();
+  //------------------ FETCH PROFILE ------------------
+
+  const fetchProfileData = async () => {
     if (!accessToken || !profile?.user_id) return;
+
     try {
-      setLoading(true);  // Start loading
-      const data = await fetchData('homeapi', 'POST', {
-        lat: profileDetails?.primary_address?.lat ? profileDetails?.primary_address?.lat : latitude,
-        lon: profileDetails?.primary_address?.lon ? profileDetails?.primary_address?.lon : longitude
-      }, {
-        Authorization: `${accessToken}`,
-        user_id: profile?.user_id,
-        type: 'user',
+      const data = await fetchData(`userprofile/${profile.user_id}`, "GET", null, {
+        Authorization: accessToken,
+        user_id: profile.user_id,
+        type: "user",
       });
-      // console?.log(data, "HomeDATA");
-      if (data?.status === 'true') { setHomePageData(data) }
-      else {
-        AsyncStorage.clear();
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'GetStartedScreen' }],
-        });
-      };
-    } catch (error) {
-      console.error('Error fetching home page data:', error);
-    } finally {
-      setLoading(false);  // Stop loading
+
+      dispatch({ type: "PROFILE_DETAILS", payload: data });
+    } catch (e) {
+      console.log("Profile error:", e);
     }
   };
-  // Fetch location and home page data on screen focus
+
+  //------------------ HOME API ------------------
+
+  const getHomePageData = async (lat, lon) => {
+    if (!accessToken || !profile?.user_id) return;
+    try {
+      setLoading(true);
+      const data = await fetchData("homeapi", "POST", { lat, lon }, {
+        Authorization: accessToken,
+        user_id: profile.user_id,
+        type: "user",
+      });
+
+      if (data?.status === "true") {
+        setHomePageData(data);
+      } else {
+        AsyncStorage.clear();
+        navigation.reset({ index: 0, routes: [{ name: "GetStartedScreen" }] });
+      }
+    } catch (err) {
+      console.log("Home API error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  //------------------ RUN WHEN SCREEN FOCUSES ------------------
+
   useFocusEffect(
     useCallback(() => {
-      const fetchLocationAndData = async () => {
-        setLoading(true);  // Start loading
-        const locationData = await getLocation();
-        if (locationData) {
-          await getHomePageData(locationData.latitude, locationData.longitude);
-        }
-        setLoading(false);  // Stop loading
-      };
-      fetchLocationAndData();  // Ensure we get location first
-    }, [profileDetails?.primary_address?.lat, navigation])
+      fetchProfileData();
+    }, [])
   );
+  //------------------ MAIN LOCATION LOADER ------------------
 
-  // Handle pull-to-refresh
-  const onRefresh = useCallback(async () => {
+  useEffect(() => {
+    const loadData = async () => {
+      if (!profileDetails) return;
+      setRefreshing(true);
+      const primary = profileDetails?.primary_address;
+      const hasPrimary = primary?.lat && primary?.lon;
+      if (!useCurrentLocation && hasPrimary) {
+        // 🔥 Use saved address
+        await getAddressFromCoords(primary.lat, primary.lon);
+        await getHomePageData(primary.lat, primary.lon);
+      } else {
+        // 🔥 Use real-time location
+        const loc = await getLocation();
+        if (loc) {
+          await getAddressFromCoords(loc.latitude, loc.longitude);
+          await getHomePageData(loc.latitude, loc.longitude);
+        }
+      }
+      setRefreshing(false);
+    };
+
+    loadData();
+  }, [profileDetails, useCurrentLocation]);
+
+  //------------------ ON REFRESH ------------------
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    const locationData = await getLocation();
-    if (locationData) {
-      await getHomePageData(locationData.latitude, locationData.longitude);
+    await fetchProfileData();
+
+    const primary = profileDetails?.primary_address;
+    const hasPrimary = primary?.lat && primary?.lon;
+
+    if (!useCurrentLocation && hasPrimary) {
+      await getAddressFromCoords(primary.lat, primary.lon);
+      await getHomePageData(primary.lat, primary.lon);
+    } else {
+      const loc = await getLocation();
+      if (loc) {
+        await getAddressFromCoords(loc.latitude, loc.longitude);
+        await getHomePageData(loc.latitude, loc.longitude);
+      }
     }
     setRefreshing(false);
-  }, []);
+  };
+  //------------------ TOGGLE UI COMPONENT ------------------
+  const LocationToggle = () => (
+    <View style={styles.toggleRow}>
+      <Text style={[poppins.regular.h8, {
+        color: COLORS[theme].primary
+      }]}>Get Store from Current Location</Text>
+      <View style={{ width: wp(15.5), height: wp(8.5),borderWidth:wp(0.4), borderColor: "#ccc", alignItems: "center", borderRadius: wp(4) }}>
+        <Switch
+          value={useCurrentLocation}
+          onValueChange={setUseCurrentLocation}
+          // Thumb (circle)
+          thumbColor={useCurrentLocation ? COLORS[theme].accent : "#9e9e9e"}
+          // Track colors
+          trackColor={{
+            false: "#ccc",
+            true: COLORS[theme].accent + "90"
+          }}
+        />
+      </View>
+    </View>
+  );
+  //------------------ UI ------------------
   return (
     <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
       <UserToggleStatus address={address} loading={loading} />
       <VersionUpgradeModal />
+      {/* 🔥 ADD OUR TOGGLE */}
+      <LocationToggle />
       {loading ? (
         <LoaderContainer />
       ) : (
         <FlatList
-          data={[1]}  // dummy entry to render whole screen
+          data={[1]}
           keyExtractor={() => "1"}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[COLORS[theme].accent]}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           renderItem={() => (
             <>
               <SearchContainer banner={homePageData} />
               <CarouselData banner={homePageData} />
               <CategoryList banner={homePageData} />
-              <StoreListData banner={homePageData} />  
+              <StoreListData banner={homePageData} useCurrentLocation={useCurrentLocation} />
             </>
           )}
-          showsVerticalScrollIndicator={false}
         />
       )}
       <FlashMessage position="top" />
     </View>
   );
 };
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loader: {
-    flex: 1, justifyContent: 'center', alignItems: 'center',
-  },
-  locationCard: {
-    margin: hp(2), padding: hp(2),
-    borderRadius: wp(2), backgroundColor: '#000',
-    elevation: 2,
-  },
-  label: {
-    fontSize: wp(4), fontWeight: '600',
-    marginBottom: hp(0.5),
-  },
-  addressText: {
-    fontSize: wp(3.8),
-  },
+  container: { flex: 1 },
+  toggleRow: {
+    width: "95%",
+    padding: wp(3),
+    alignItems: "flex-end",
+    flexDirection: "row", alignSelf: "center", alignItems: "center", justifyContent: "space-between"
+  }
 });
+
 export default HomeScreen;
