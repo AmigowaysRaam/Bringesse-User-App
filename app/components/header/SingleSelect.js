@@ -12,6 +12,7 @@ import { wp, hp } from '../../resources/dimensions';
 import { COLORS } from '../../resources/colors';
 import { useTheme } from '../../context/ThemeContext';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { poppins } from '../../resources/fonts';
 
 const SingleSelectModal = ({
     visible = false,
@@ -36,7 +37,7 @@ const SingleSelectModal = ({
                     onDismiss();
                 }}
             >
-                <Text style={[styles.optionText, { color: COLORS[theme].textPrimary,textTransform:"capitalize" }]}>
+                <Text style={[poppins.semi_bold.h6, styles.optionText, { color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
                     {item.label}
                 </Text>
 
@@ -58,20 +59,27 @@ const SingleSelectModal = ({
             onRequestClose={onDismiss}
         >
             <View style={styles.wrapper}>
-                {/* Dimmed background */}
                 <TouchableWithoutFeedback onPress={onDismiss}>
                     <View style={styles.overlay} />
                 </TouchableWithoutFeedback>
-                {/* Bottom Sheet Container */}
                 <View
                     style={[
                         styles.container,
                         { backgroundColor: COLORS[theme].background },
                     ]}
                 >
-                    <Text style={[styles.title, { color: COLORS[theme].textPrimary }]}>
-                        {title}
-                    </Text>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                        <Text style={[poppins.semi_bold.h5, styles.title, { color: COLORS[theme].textPrimary }]}>
+                            {title}
+                        </Text>
+                        <MaterialIcons
+                            style={{ marginHorizontal: hp(0.5) }}
+                            onPress={onDismiss}
+                            name="close"
+                            size={wp(8)}
+                            color={COLORS[theme].textPrimary}
+                        />
+                    </View>
 
                     <FlatList
                         data={data}
@@ -97,7 +105,7 @@ const styles = StyleSheet.create({
         paddingVertical: hp(2),
         paddingHorizontal: wp(4),
         maxHeight: hp(60),
-        borderWidth: wp(0.5), borderColor: "#ccc"
+        borderWidth: wp(0.5), borderColor: "#ccc",
 
     },
     title: {
@@ -114,7 +122,7 @@ const styles = StyleSheet.create({
         borderColor: '#ccc',
     },
     optionText: {
-        fontSize: wp(4),
+        // fontSize: wp(4),
     },
 });
 

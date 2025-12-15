@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   TouchableOpacity,
@@ -7,15 +7,18 @@ import {
   StyleSheet,
   Dimensions,
   ToastAndroid,
-  Alert,
+  Platform,
+  UIManager,
 } from 'react-native';
+
 import IonicIcon from 'react-native-vector-icons/Ionicons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+
 import { hp, wp } from '../../resources/dimensions';
 import { COLORS } from '../../resources/colors';
 import { commonStyles } from '../../resources/styles';
 import { useTheme } from '../../context/ThemeContext';
+
 import { useSelector } from 'react-redux';
 import { fetchData } from '../../api/api';
 import { useFocusEffect } from '@react-navigation/native';
@@ -25,7 +28,13 @@ import { poppins } from '../../resources/fonts';
 const { width } = Dimensions.get('window');
 const TAB_WIDTH = width / 5;
 
-// Helper to render tab icons
+// Enable animation on Android
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental &&
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// Render Icons
 const getTabIcon = (routeName, isFocused, colorScheme, cartCount, activeRoute) => {
   const iconColor = isFocused
     ? COLORS[colorScheme].white
@@ -34,6 +43,7 @@ const getTabIcon = (routeName, isFocused, colorScheme, cartCount, activeRoute) =
   switch (routeName) {
     case 'Home':
       return <IonicIcon name="home" color={iconColor} size={wp(6)} />;
+
     case 'Booking':
       return (
         <View style={styles.iconContainer}>
@@ -45,43 +55,57 @@ const getTabIcon = (routeName, isFocused, colorScheme, cartCount, activeRoute) =
           )}
         </View>
       );
+
     case 'Notification':
-      return <MaterialIcon name="notifications-active" color={iconColor} size={wp(6)} />;
+      return (
+        <MaterialIcon
+          name="notifications-active"
+          color={iconColor}
+          size={wp(6)}
+        />
+      );
+
     case 'T-Social':
-      return <MaterialIcon name="location-pin" color={iconColor} size={wp(6)} />;
+      return <MaterialIcon name="fire-truck" color={iconColor} size={wp(6)} />;
+
     case 'More':
       return <MaterialIcon name="person" color={iconColor} size={wp(6)} />;
+
     default:
       return <IonicIcon name="home" color={iconColor} size={wp(5)} />;
   }
 };
+
 const BottomTabBar = ({ state, descriptors, navigation }) => {
   const { theme } = useTheme();
-  const profile = useSelector(state => state?.Auth?.profile);
-  const accessToken = useSelector(state => state.Auth.accessToken);
-  const profileDetails = useSelector(state => state.Auth.profileDetails);
 
-  const translateX = useSharedValue(0);
+  const profile = useSelector((state) => state?.Auth?.profile);
+  const accessToken = useSelector((state) => state.Auth.accessToken);
+  const profileDetails = useSelector((state) => state.Auth.profileDetails);
+
   const [cartCount, setCartCount] = useState(0);
   const [activeRoute, setActiveRoute] = useState(state.index);
   const [allowRemove, setAllowRemove] = useState(false);
 
-  // 🔁 Animate active tab indicator
-  useEffect(() => {
-    fetchCartCount();
-    // translateX.value = withTiming(activeRoute * TAB_WIDTH, { duration: 300 });
-  }, [activeRoute]);
+  // Check if tab bar is focused
+  const isFocused = navigation.isFocused();
 
-  // 🔁 Re-fetch cart count every time tab bar gains focus or user returns to it
+  // Focus effect to fetch cart data ONLY when tab bar is active
   useFocusEffect(
     useCallback(() => {
       fetchCartCount();
-      // console.log(activeRoute, 'Active Route in Tab Bar');
-    }, [activeRoute, navigation])
+    }, [activeRoute,cartCount])
   );
-  // ✅ Fetch Cart Count from API
+
+  useEffect(() => {
+    fetchCartCount();
+  }, [activeRoute,cartCount])
+
+  // Fetch cart count (runs ONLY on focus)
   const fetchCartCount = async () => {
-    if (!accessToken || !profileDetails?.user_id || !profileDetails?.primary_address?.lat) return;
+    if (!accessToken || !profileDetails?.user_id || !profileDetails?.primary_address?.lat)
+      return;
+
     try {
       const data = await fetchData(
         'cart/get',
@@ -97,25 +121,23 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
           type: 'user',
         }
       );
-      // console.log(data, 'Cart Data Botottom');
-      // Alert.alert('Cart Data', JSON.stringify(data?.status_code));
-      if (data?.error == 'Unauthorized Access API') {
+
+      if (data?.error === 'Unauthorized Access API') {
         AsyncStorage.clear();
         navigation.reset({
           index: 0,
           routes: [{ name: 'GetStartedScreen' }],
         });
       }
+
       if (data?.status === true) {
         setCartCount(data.data?.items?.length || 0);
-      } else {
-        // ToastAndroid.show(data.message || 'Unable to fetch cart.', ToastAndroid.SHORT);
       }
     } catch (error) {
-      console.error('Error fetching cart data:', error);
+      console.error('Error fetching cart:', error);
     }
   };
-  // ✅ Handle removing cart items
+  // Remove cart item
   const handleRemoveCartClick = async () => {
     if (!accessToken || !profile?.user_id) return;
     try {
@@ -134,33 +156,28 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
         fetchCartCount();
       }
     } catch (error) {
-      console.error('Error clearing cart:', error);
+      console.error('Clear cart error:', error);
     } finally {
       setAllowRemove(false);
     }
   };
-
-  // ✅ Handle navigation tab press
+  // Handle tab press (Update activeRoute ONLY when focused)
   const handleTabPress = (routeName, index) => {
-    setActiveRoute(index);
+    if (isFocused) {
+      setActiveRoute(index);
+    }
     navigation.navigate(routeName);
   };
-
-  // ✅ Handle view cart
+  // View Cart
   const handleViewCartClick = () => {
-    setActiveRoute(2);
+    if (isFocused) setActiveRoute(2);
     navigation.navigate('Booking');
   };
 
-  const indicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-
   return (
     <>
-      {/* Floating Cart Summary Button */}
       {activeRoute !== 2 && cartCount > 0 && (
-        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
           <TouchableOpacity
             onPress={handleViewCartClick}
             style={{
@@ -183,11 +200,10 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
             >
               <View>
                 <Text
-                  style={[poppins.semi_bold.h6, {
-                    color: '#fff',
-                    fontSize: wp(3.5),
-                    marginTop: wp(1),
-                  }]}
+                  style={[
+                    poppins.semi_bold.h6,
+                    { color: '#fff', fontSize: wp(3.5), marginTop: wp(1) },
+                  ]}
                 >
                   {cartCount} item{cartCount > 1 ? 's' : ''} in your cart
                 </Text>
@@ -219,6 +235,7 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
+
           {allowRemove && (
             <TouchableOpacity
               onPress={handleRemoveCartClick}
@@ -229,7 +246,8 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: wp(2),
-                position: 'relative',top: hp(0.5)
+                position: 'relative',
+                top: hp(0.5),
               }}
             >
               <Text
@@ -247,11 +265,11 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
         </View>
       )}
 
-      {/* Bottom Tab Bar */}
+      {/* 🔽 Bottom Tabs */}
       <View
         style={[
           styles.tabContainer,
-          { backgroundColor: COLORS[theme].viewBackground },
+          { backgroundColor: COLORS[theme].background },
           commonStyles[theme].shadow,
         ]}
       >
@@ -259,33 +277,28 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
           {state.routes.map((route, index) => {
             const { options } = descriptors[route.key];
             const label = options.tabBarLabel || route.name;
-            const isFocused = activeRoute === index;
-
-            const onPress = () => handleTabPress(route.name, index);
+            const isTabFocused = activeRoute === index;
 
             return (
               <TouchableOpacity
                 key={index}
-                onPress={onPress}
+                onPress={() => handleTabPress(route.name, index)}
                 onLongPress={() =>
                   navigation.emit({ type: 'tabLongPress', target: route.key })
                 }
                 style={[
                   styles.tabButton,
                   {
-                    borderColor: COLORS[theme].accent,
-                    padding: wp(2),
-                    backgroundColor: isFocused
+                    backgroundColor: isTabFocused
                       ? COLORS[theme].accent
                       : COLORS[theme].background,
                     borderRadius: wp(20),
                     height: wp(10),
-                    alignSelf: 'center',
                     width: wp(10),
                   },
                 ]}
               >
-                {getTabIcon(route.name, isFocused, theme, cartCount, activeRoute)}
+                {getTabIcon(route.name, isTabFocused, theme, cartCount, activeRoute)}
               </TouchableOpacity>
             );
           })}
@@ -294,6 +307,7 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
     </>
   );
 };
+
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
@@ -304,18 +318,13 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row',
     width: wp(100),
+    justifyContent: 'space-around',
   },
   tabButton: {
+    padding: wp(2),
+    alignItems: 'center',
+    justifyContent: 'center',
     marginHorizontal: hp(2.2),
-  },
-  indicator: {
-    position: 'absolute',
-    bottom: 0,
-    width: TAB_WIDTH - wp(4),
-    marginHorizontal: wp(2),
-    height: wp(0.5),
-    borderBottomLeftRadius: wp(1),
-    borderBottomRightRadius: wp(1),
   },
   iconContainer: {
     position: 'relative',
@@ -338,5 +347,4 @@ const styles = StyleSheet.create({
     fontSize: wp(3),
   },
 });
-
 export default BottomTabBar;

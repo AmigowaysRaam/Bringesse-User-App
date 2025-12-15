@@ -20,27 +20,25 @@ import { useNavigation } from '@react-navigation/native';
 import OrderReviewModal from './OrderReviewModal';
 import DriverDetails from './DriverDetails';
 import messaging from '@react-native-firebase/messaging';
+import ReviewCard from './ReviewCard';
 const ORDER_STEPS = ['pending', 'processing', 'ready', 'delivered'];
 const OrderDetail = ({ route }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation();
-
   const profile = useSelector((state) => state.Auth.profileDetails);
   const accessToken = useSelector((state) => state.Auth.accessToken);
   const { orderId } = route.params;
-
   const [orderDetail, setOrderDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewType, setReviewType] = useState(null);
   // ⭐⭐ REUSABLE ROW COMPONENT ⭐⭐
   const LabelValue = ({ label, value, valueColor }) => (
     <View style={styles.rowBetween}>
-      <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary }]}>
+      <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
         {label}
       </Text>
       <Text
@@ -65,11 +63,10 @@ const OrderDetail = ({ route }) => {
       user_id: profile.user_id,
       type: 'user',
     };
-
     try {
       setLoading(true);
       const data = await fetchData('orderdetail', 'POST', payload, headers);
-      console.log(data, "datadatadata")
+      console.log(data, "orderdetail")
       if (data?.status === 'true') setOrderDetail(data);
       else setOrderDetail(null);
     } catch (err) {
@@ -79,6 +76,32 @@ const OrderDetail = ({ route }) => {
       setRefreshing(false);
     }
   }, [accessToken, profile?.user_id, orderId]);
+useEffect(() => {
+  // Call immediately once
+const fetchO = async() =>{
+  if (!accessToken || !profile?.user_id) return;
+  const payload = {
+    user_id: profile.user_id,
+    order_id: orderId,
+  };
+  const headers = {
+    Authorization: `${accessToken}`,
+    user_id: profile.user_id,
+    type: 'user',
+  };
+  const data = await fetchData('orderdetail', 'POST', payload, headers);
+  console.log(data, "orderdetail")
+  if (data?.status === 'true') setOrderDetail(data);
+}
+  // Then set interval
+  const interval = setInterval(() => {
+    fetchO();
+  }, 5000); // 5000ms = 5 seconds
+
+  // Clear interval on unmount
+  return () => clearInterval(interval);
+}, []); // empty dependency array ensures this effect runs only once
+
 
   useEffect(() => {
     const unsubscribe = messaging().onMessage(async () => fetchOrderDetail());
@@ -127,6 +150,7 @@ const OrderDetail = ({ route }) => {
   const handleCloseModal = () => {
     setShowReviewModal(false);
     fetchOrderDetail();
+    setReviewType(null);
   }
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -141,7 +165,6 @@ const OrderDetail = ({ route }) => {
         statusTimes[item.status] = item.time;
       });
     }
-
     return (
       <View style={styles.statusContainer}>
         {ORDER_STEPS.map((step, index) => {
@@ -183,7 +206,7 @@ const OrderDetail = ({ route }) => {
               <Text
                 style={[
                   poppins.regular.h9,
-                  { color: COLORS[theme].textPrimary, marginTop: wp(1) },
+                  { color: COLORS[theme].textPrimary, marginTop: wp(1), textTransform: 'capitalize' },
                 ]}
               >
                 {step}
@@ -208,16 +231,17 @@ const OrderDetail = ({ route }) => {
 
   if (loading) {
     return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
         <HeaderBar showBackArrow title="Order Details" />
         <ActivityIndicator size="large" color={COLORS[theme].accent} />
       </GestureHandlerRootView>
     );
   }
-
   if (!orderDetail) {
     return (
-      <GestureHandlerRootView style={styles.centerScreen}>
+      <GestureHandlerRootView style={[styles.centerScreen, {
+        backgroundColor: COLORS[theme].background
+      }]}>
         <MaterialCommunityIcon
           name="cart-off"
           size={wp(15)}
@@ -234,12 +258,14 @@ const OrderDetail = ({ route }) => {
       </GestureHandlerRootView>
     );
   }
-
   return (
     <GestureHandlerRootView
       style={{ flex: 1, backgroundColor: COLORS[theme].background }}
     >
-      <HeaderBar showBackArrow title="Order Details" />
+      <HeaderBar showBackArrow title="Order Details"
+      // showRightArrow={"help-circle-sharp"}
+      // onRightArrowPress={() => navigation.navigate('CustomerSupport', { orderId: orderDetail.order_id })}
+      />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
@@ -254,12 +280,17 @@ const OrderDetail = ({ route }) => {
           />
         }
       >
+        {/* <Text style={{ color: "#000" }}>{JSON.stringify(orderDetail, null, 2)}</Text> */}
         {/* Store Info */}
         <View
-          style={[styles.card, { backgroundColor: COLORS[theme].viewBackground }]}
+          style={[{
+            backgroundColor: COLORS[theme].viewBackground, paddingHorizontal: wp(3),
+            marginBottom: wp(3),
+          }]}
         >
           <View style={styles.storeRow}>
             <Image
+              resizeMode='contain'
               source={{
                 uri:
                   orderDetail.image_url ||
@@ -268,23 +299,30 @@ const OrderDetail = ({ route }) => {
               style={styles.logo}
             />
 
-            <View style={{ flex: 1, marginLeft: wp(3) }}>
-              <Text
-                style={[
-                  poppins.semi_bold.h6,
-                  { color: COLORS[theme].textPrimary, textTransform: 'capitalize' },
-                ]}
-              >
-                {orderDetail.store_name}
-                {/* {JSON.stringify(orderDetail?.order_review,null,2)} */}
-              </Text>
-
-              <Text
-                style={[poppins.regular.h8, { color: COLORS[theme].textPrimary }]}
-              >
-                {formatDate(orderDetail.ordered_time)}
-              </Text>
+            <View style={{ flex: 1, marginLeft: wp(3), flexDirection: "row" }}>
+              <View>
+                <Text
+                  style={[
+                    poppins.semi_bold.h6,
+                    { color: COLORS[theme].textPrimary, textTransform: 'capitalize' },
+                  ]}
+                >
+                  {orderDetail.store_name}
+                  {/* {JSON.stringify(orderDetail?.order_review,null,2)} */}
+                </Text>
+                <Text
+                  style={[poppins.regular.h8, { color: COLORS[theme].textPrimary }]}
+                >
+                  {formatDate(orderDetail.ordered_time)}
+                </Text>
+              </View>
             </View>
+            {
+              orderDetail?.isFood == 'true' &&
+              <View              >
+                <MaterialCommunityIcon name={'food'} color={COLORS[theme].textPrimary} size={wp(10)} />
+              </View>
+            }
             {orderDetail?.order_review?.rating &&
               orderDetail?.order_review?.rating != 0 &&
               <View style={{ backgroundColor: "#555", width: wp(10), height: wp(6), alignItems: "center", justifyContent: "center", borderRadius: wp(1) }}>
@@ -325,9 +363,8 @@ const OrderDetail = ({ route }) => {
               { color: COLORS[theme].textPrimary, marginBottom: wp(2) },
             ]}
           >
-            Order Summary
           </Text>
-          <LabelValue label="Order ID" value={orderDetail.unique_id} />
+          <LabelValue label="Order ID" value={orderDetail?.unique_id || orderDetail.order_id?.slice(-6)} />
           <LabelValue label="Delivery Type" value={orderDetail.delivery_type} />
           <LabelValue
             label="OTP"
@@ -343,36 +380,39 @@ const OrderDetail = ({ route }) => {
         <>
           {/* <DriverDetails /> */}
         </>
-        {orderDetail.order_status === 'delivered' && (
-          <View style={styles.reviewButtonsWrapper}>
-            {orderDetail?.order_review?.rating === 0 && <TouchableOpacity
-              style={[styles.reviewButton, { backgroundColor: COLORS[theme].accent }]}
-              onPress={() => {
-                setReviewType('product');
-                setShowReviewModal(true);
-              }}
-            >
-              <Text style={[poppins.semi_bold.h7, styles.reviewButtonText]}>
-                Review Products
-              </Text>
-            </TouchableOpacity>
-            }
-            {!orderDetail?.driver && (
-              <TouchableOpacity
-                style={[styles.reviewButton, { backgroundColor: COLORS[theme].accent }]}
-                onPress={() => {
-                  setReviewType('driver');
-                  setShowReviewModal(true);
-                }}
-              >
-                <Text style={[poppins.semi_bold.h7, styles.reviewButtonText]}>
-                  Review Driver
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+        {orderDetail.order_status == 'delivered' || orderDetail.order_status === 'completed' &&
+          (
+            <View style={styles.reviewButtonsWrapper}>
+              {
+                // orderDetail?.order_review?.rating === 0 && 
+                <TouchableOpacity
+                  style={[styles.reviewButton, { backgroundColor: COLORS[theme].accent }]}
+                  onPress={() => {
+                    setReviewType('product');
+                    setShowReviewModal(true);
+                  }}
+                >
+                  <Text style={[poppins.semi_bold.h7, styles.reviewButtonText]}>
+                    Review Store
+                  </Text>
+                </TouchableOpacity>
+              }
 
+              {!orderDetail?.driver && (
+                <TouchableOpacity
+                  style={[styles.reviewButton, { backgroundColor: COLORS[theme].accent }]}
+                  onPress={() => {
+                    setReviewType('driver');
+                    setShowReviewModal(true);
+                  }}
+                >
+                  <Text style={[poppins.semi_bold.h7, styles.reviewButtonText]}>
+                    Review Driver
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         {/* Ordered Items */}
         {orderDetail.items?.length > 0 && (
           <View
@@ -386,8 +426,7 @@ const OrderDetail = ({ route }) => {
             >
               Ordered Items
             </Text>
-
-            {orderDetail.items.map((item, index) => (
+            {orderDetail?.items.map((item, index) => (
               <View
                 key={index}
                 style={[
@@ -411,13 +450,12 @@ const OrderDetail = ({ route }) => {
                   <Text
                     style={[
                       poppins.semi_bold.h8,
-                      { color: COLORS[theme].textPrimary },
+                      { color: COLORS[theme].textPrimary, textTransform: "capitalize" },
                     ]}
                   >
                     {item.name}
                     {/* {JSON.stringify(item)} */}
                   </Text>
-
                   {item.item_variant?.name && (
                     <Text
                       style={[poppins.regular.h9, { color: COLORS[theme].textPrimary }]}
@@ -446,9 +484,9 @@ const OrderDetail = ({ route }) => {
                 </View>
               </View>
             ))}
+            {/* OrderItemsCard */}
           </View>
         )}
-
         {/* CANCEL BUTTON */}
         {orderDetail.order_status === 'pending' ? (
           <TouchableOpacity
@@ -475,10 +513,10 @@ const OrderDetail = ({ route }) => {
             {orderDetail.order_status}
           </Text>
         )}
-        {/* TRACK ORDER */}
-        {orderDetail?.tracking && 
+        {
+          orderDetail?.isFood == 'true' &&
           orderDetail.order_status === 'ready' || orderDetail.order_status === 'shipped' &&
-           (
+          (
             <TouchableOpacity
               style={[styles.cancelButton, { backgroundColor: COLORS[theme].accent }]}
               onPress={() =>
@@ -489,7 +527,10 @@ const OrderDetail = ({ route }) => {
             </TouchableOpacity>
           )}
       </ScrollView>
-      {/* Cancel Modal */}
+
+      <ReviewCard orderDetail={orderDetail?.driver_review} title={'Driver Review'} />
+      <ReviewCard orderDetail={orderDetail?.order_review} title={'Order Review'} />
+
       <ConfirmationModal
         visible={showCancelModal}
         title="Cancel Order"
@@ -509,23 +550,21 @@ const OrderDetail = ({ route }) => {
     </GestureHandlerRootView>
   );
 };
-
 const styles = StyleSheet.create({
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   card: {
     borderRadius: wp(3),
-    padding: wp(3),
+    paddingHorizontal: wp(3),
     marginBottom: wp(3),
     elevation: 3,
   },
-
   storeRow: { flexDirection: 'row', alignItems: 'center' },
   logo: { width: wp(16), height: wp(16), borderRadius: wp(3) },
 
   rowBetween: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: wp(2),
+    marginBottom: wp(1),
   },
 
   itemCard: {
@@ -559,7 +598,6 @@ const styles = StyleSheet.create({
     left: '66%',
     width: '90%',
     height: wp(1),
-
   },
   reviewButtonsWrapper: {
     flexDirection: 'row',

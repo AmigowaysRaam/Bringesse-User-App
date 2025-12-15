@@ -4,22 +4,17 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../resources/colors';
-import { hp, wp } from '../resources/dimensions';
+import {  wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
-
 const CategoryList = ({ banner }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation(); // ✅ for navigation
-
   const handleCategoryPress = (item) => {
-    // console.log("item",item)
     navigation.navigate('CategoryDetails', {
       categoryId: item.category_id,
-     
     });
   };
-
   return (
     <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
       <FlatList
@@ -54,7 +49,6 @@ const CategoryList = ({ banner }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     paddingVertical: wp(0.1),
@@ -78,8 +72,6 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     textAlign: 'center',
-    // marginTop: wp(1),
   },
 });
-
 export default CategoryList;

@@ -12,7 +12,8 @@ import { COLORS } from "../../../resources/colors";
 import { ThemeProvider, useTheme } from "../../../context/ThemeContext";
 import { poppins } from "../../../resources/fonts";
 import { useSelector } from "react-redux";
-
+import { IMAGE_ASSETS } from "../../../resources/images";
+import { hp, wp } from "../../../resources/dimensions";
 // ✅ Separate StoreCard component
 const StoreCard = ({ item, navigation }) => {
   const { theme } = useTheme();
@@ -20,22 +21,45 @@ const StoreCard = ({ item, navigation }) => {
   const [selectedVariant, setSelectedVariant] = useState(
     item.variants && item.variants.length > 0 ? item.variants[0] : null
   );
-
   return (
     <TouchableOpacity
-      style={styles.card}
+      disabled={
+        item.isActive != 'true'
+      }
+      style={[styles.card, {
+      }]}
       onPress={() =>
+        item.isActive == 'true' &&
         navigation.navigate("ProductList", { storeId: item.store_id })
       }
     >
+      {/* <Text style={{color:"#000"}}>{JSON.stringify(item)}</Text> */}
       <Image
         source={{ uri: item.image_url || "https://via.placeholder.com/150" }}
-        style={styles.image}
+        style={[styles.image, {
+          opacity: item.isActive !== 'true' ? 0.2 : 1
+        }]}
         resizeMode="contain"
       />
+      {item.isActive !== 'true' &&
+        item?.static_image_url &&
+        <Image
+          // source={IMAGE_ASSETS.shopclosed}
+          source={{ uri: item?.static_image_url || "https://via.placeholder.com/150" }}
+          style={[{
+            width: wp(50),
+            height: hp(15),
+            position: "absolute",
+            left:hp(0),top:1
+          }]}
+          resizeMode="contain"
+        />
+      }
       <View style={styles.cardContent}>
         <Text style={[poppins.regular.h6, styles.name]}>{item.name || "Unnamed Store"}</Text>
         {/* ⭐ Info Row */}
+        <Text style={[poppins.regular.h9]}>{item.store_status || "Unnamed Store"}</Text>
+
         <View style={styles.infoRow}>
           <View style={styles.iconText}>
             <MaterialCommunityIcons name="star-outline" size={16} color="#000" />
@@ -45,7 +69,7 @@ const StoreCard = ({ item, navigation }) => {
           <View style={styles.iconText}>
             <MaterialCommunityIcons name="map-marker" size={16} color="#000" />
             <Text style={styles.infoText}>
-              {item.distance ? `${item.distance} km` : "N/A"}
+              {item.distance ? `${item.distance}` : "N/A"}
             </Text>
           </View>
 
@@ -58,7 +82,6 @@ const StoreCard = ({ item, navigation }) => {
             <Text style={styles.infoText}>{item.time || "—"}</Text>
           </View>
         </View>
-
         {/* 🏷️ Tag */}
         {item.tag ? (
           <View style={styles.tagContainer}>
@@ -114,13 +137,9 @@ const CategoryStore = () => {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const profileDetails = useSelector(state => state.Auth.profileDetails);
-
-
   const fetchStores = async () => {
     try {
-      console.log("CategoryId:", categoryId);
       setLoading(true);
-
       const payload = {
         category_id: categoryId,
         lon: profileDetails?.primary_address?.lon,
@@ -129,11 +148,8 @@ const CategoryStore = () => {
         offset: "0",
         search: search.trim(),
       };
-
       const data = await fetchData("categorystore", "POST", payload);
-      console.log("Payload:", payload);
       console.log("Response Data:", data);
-
       if (data?.status === "true") {
         setStores(data?.store_list || []);
       } else {
@@ -171,16 +187,16 @@ const CategoryStore = () => {
 
         />
       </View>
-
       {/* 🏪 Store Count or Loader */}
       {loading ? (
-        <ActivityIndicator size="large" color="#00BFFF" style={{ marginTop: 20 }} />
+        <ActivityIndicator size="large" color="#ccc" style={{ marginTop: 20 }} />
       ) : (
-        <Text style={styles.storeCount}>Stores</Text>
+        // <Text style={styles.storeCount}>Stores</Text>
+        null
       )}
-
       {/* 🛍️ Store List */}
       <FlatList
+       contentContainerStyle={{marginTop:hp(2)}}
         data={stores}
         keyExtractor={(item, index) => item._id || index.toString()}
         renderItem={({ item }) => <StoreCard item={item} navigation={navigation} />}
@@ -222,7 +238,7 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ddd",
     borderRadius: 12,
     marginBottom: 20,
     elevation: 3,

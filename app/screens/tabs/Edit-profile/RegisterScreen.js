@@ -95,7 +95,6 @@ const RegisterScreen = () => {
         weight: '100',         // added weight field (numeric)
         vehicle_no: 'TN01TG0023',
         referal_code: 'TESTRef0001',
-
     } :
         {
             firstName: '',

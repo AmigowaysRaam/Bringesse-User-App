@@ -156,13 +156,12 @@ function App(): React.JSX.Element {
         },
       },
     ];
-
-    if (Platform.OS === 'android') {
-      buttons.unshift({
-        text: 'Close',
-        onPress: () => BackHandler.exitApp(),
-      });
-    }
+    // if (Platform.OS === 'android') {
+    //   buttons.unshift({
+    //     text: 'Close',
+    //     onPress: () => BackHandler.exitApp(),
+    //   });
+    // }
 
     Alert.alert(
       'No Network Connection',

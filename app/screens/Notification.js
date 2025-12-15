@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   Alert,
   RefreshControl,
+  BackHandler,
 } from 'react-native';
 import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
@@ -17,6 +18,7 @@ import { useSelector } from 'react-redux';
 import DeviceInfo from 'react-native-device-info';
 import moment from 'moment';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 const Notification = () => {
 
   const { theme } = useTheme();
@@ -31,6 +33,21 @@ const Notification = () => {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const limit = 10;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // block back ONLY on this screen
+        return true;
+      };
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+  
+      return () => subscription.remove();
+    }, [])
+  );
   const fetchNotifications = useCallback(async (pageNumber = 1) => {
     if (!accessToken || !profile?.user_id) return;
     const deviceId = await DeviceInfo.getUniqueId();
@@ -182,7 +199,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
-    marginBottom: wp(3),
   },
   iconContainer: {
     marginRight: wp(4),

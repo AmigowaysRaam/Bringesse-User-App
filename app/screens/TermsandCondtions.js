@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import {  StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,13 +9,10 @@ import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 import { useSelector } from 'react-redux';
 import HTML from 'react-native-render-html';
-
 const TermsAndConditions = () => {
-  
   const { theme } = useTheme();
   const { t } = useTranslation();
   const terms_conditions = useSelector(state => state.Auth.siteDetails?.terms_conditions);
-  // Alert.alert(terms_conditions)
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
       <HeaderBar title={t('Terms and Conditions')} showBackArrow />

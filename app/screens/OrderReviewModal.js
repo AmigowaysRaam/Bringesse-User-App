@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, Modal, TouchableOpacity,
   StyleSheet, TextInput, ToastAndroid,
+  Alert,
 } from 'react-native';
 import { COLORS } from '../resources/colors';
 import { wp, hp } from '../resources/dimensions';
@@ -12,7 +13,7 @@ import { fetchData } from '../api/api';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 
-const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType,storeId }) => {
+const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType, storeId }) => {
   const { theme } = useTheme();
   const navigation = useNavigation();
 
@@ -22,7 +23,7 @@ const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType,stor
 
   const accessToken = useSelector((state) => state.Auth.accessToken);
   const profile = useSelector((state) => state.Auth.profile);
-
+  // Alert.alert(reviewType)
   const titleText =
     reviewType === 'driver'
       ? 'Rate Your Driver'
@@ -36,7 +37,8 @@ const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType,stor
   // ✅ Submit handler
   const handleSubmit = async () => {
     if (!rating) return alert('Please select a rating!');
-
+    Alert.alert(JSON.stringify(driver))
+    return
     setLoading(true);
     try {
       const payload = {
@@ -44,21 +46,22 @@ const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType,stor
         rating,
         review,
         user_id: profile?.user_id,
-        type: reviewType == 'product' ? 'store' : reviewType, // driver OR product
+        type: reviewType === 'driver' ? reviewType : 'store', // driver OR product
         source_id: reviewType === 'driver' ? driver?.driverid : storeId,
       };
+      console.log(JSON.stringify(payload, null, 2), "payload")
 
       const response = await fetchData('updatereview', 'POST', payload, {
         Authorization: `${accessToken}`,
         user_id: profile?.user_id,
         type: 'user',
       });
-
+      // console.log(JSON.stringify(response, null, 2),"response")
       if (response?.status === true || response?.status === 'true') {
         ToastAndroid.show(response?.message, ToastAndroid.SHORT);
         onClose();
       } else {
-        alert(response?.message || 'Something went wrong');
+        // alert(response?.message || 'Something went wrong');
       }
     } catch (error) {
       console.error('Review Submit Error:', error);

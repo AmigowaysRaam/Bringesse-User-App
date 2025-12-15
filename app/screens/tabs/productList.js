@@ -1,15 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, Image, TouchableOpacity, ScrollView,
-  TextInput, LayoutAnimation, Platform, UIManager,
-  Modal, FlatList, KeyboardAvoidingView, ActivityIndicator, Alert,
-  ToastAndroid,
+  TextInput, Platform, UIManager,
+  FlatList, KeyboardAvoidingView, ActivityIndicator, ToastAndroid,
+  Alert,
 } from "react-native";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import HeaderBar from "../../components/header";
-import FlashMessage from "react-native-flash-message";
 import UseProfileHook from "../../hooks/profile-hooks";
-import Toast from "react-native-toast-message";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { hp, wp } from "../../resources/dimensions";
 import { COLORS } from "../../resources/colors";
@@ -17,61 +14,42 @@ import { useTheme } from "../../context/ThemeContext";
 import { useSelector } from "react-redux";
 import { fetchData } from "../../api/api";
 import { poppins } from "../../resources/fonts";
+import ProductDetailModal from "../ProductDetailModal";
+import StoreDetailCard from "../StoreDetailCard";
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 const ProductListScreen = ({ route }) => {
   const navigation = useNavigation();
-  const { storeId, useCurrentLocation } = route.params;
+  const { storeId } = route.params;
   const [expandTop, setExpandTop] = useState(true);
-  const [expandBest, setExpandBest] = useState(false);
   const [storeData, setStoreData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [variantModal, setVariantModal] = useState({ visible: false, item: null });
-  const { profile } = UseProfileHook();
-  const [selectedVariants, setSelectedVariants] = useState({});
   const [cartItems, setCartItems] = useState({});
   const [cartSummary, setCartSummary] = useState({ totalItems: 0, totalPrice: 0 });
-  const profileDetails = useSelector(state => state.Auth.profileDetails);
-  const accessToken = useSelector(state => state.Auth.accessToken);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredTopProducts, setFilteredTopProducts] = useState([]);
-
-  const formatTo12Hour = (utcTime) => {
-    const date = new Date(utcTime);
-    const localDate = new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
-    return localDate.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+  const [selProdtedData, setselProdtedData] = useState(null);
+  const { profile } = UseProfileHook();
+  const profileDetails = useSelector(state => state.Auth.profileDetails);
+  const accessToken = useSelector(state => state.Auth.accessToken);
+  const { theme } = useTheme();
   useEffect(() => {
     getStoreDetails();
   }, []);
-
   useEffect(() => {
-    if (storeData?.top_products) {
-      setFilteredTopProducts(storeData.top_products);
-      // console.log(JSON.stringify(storeData.top_products,null,2))
-    }
+    if (storeData?.top_products) setFilteredTopProducts(storeData.top_products);
+    // Alert.alert(storeData.top_products.length.toString());
   }, [storeData]);
 
-  // 🔁 Re-fetch cart count every time tab bar gains focus or user returns to it
   useFocusEffect(
     useCallback(() => {
       fetchCartCount();
     }, [navigation])
   );
 
-  // ✅ Fetch Cart Count from API
   const fetchCartCount = async () => {
-    // if (!accessToken || !profileDetails?.user_id) return;
-    if (!accessToken || !profileDetails?.primary_address?.lat || !profileDetails?.primary_address?.lat) {
-      setLoading(false);
-      ToastAndroid.show('To continue Shopping Add Address', ToastAndroid.SHORT)
-      return
-    }
+    if (!accessToken || !profileDetails?.primary_address?.lat) return;
     try {
       const data = await fetchData(
         'cart/get',
@@ -81,52 +59,43 @@ const ProductListScreen = ({ route }) => {
           lat: profileDetails?.primary_address?.lat,
           lon: profileDetails?.primary_address?.lon,
         },
-        {
-          Authorization: `${accessToken}`,
-          user_id: profile?.user_id,
-          type: 'user',
-        }
+        { Authorization: `${accessToken}`, user_id: profile?.user_id, type: 'user' }
       );
-      if (data?.status === true) {
-        if(data.data?.items.length){
-          setCartSummary(data.data?.items)
-        }
-        else{
-         setCartSummary({ totalItems:0, totalPrice :0});
-         setCartItems({})
-        }
-        // setCartSummary(data.data?.items || {});
+      if (data?.status && data.data?.items?.length) {
+        const items = {};
+        data.data.items.forEach(item => {
+          const key = `${item.item_id}_${item.variantIndex}`;
+          items[key] = item;
+        });
+        setCartItems(items);
+        updateCartSummary(items);
       } else {
-        ToastAndroid.show(data.message || 'Unable to fetch cart.', ToastAndroid.SHORT);
-        setCartItems({})
+        setCartItems({});
+        setCartSummary({ totalItems: 0, totalPrice: 0 });
       }
-    } catch (error) {
-      console.error('Error fetching cart data:', error);
+    } catch {
+      setCartItems({});
     }
   };
 
   const updateCartSummary = (cart = cartItems) => {
-    fetchCartCount();
-    // Alert.alert("Cart Data", JSON.stringify(cartSummary, null, 2))
-    // let totalItems = 0;
-    // let totalPrice = 0;
-    // Object.values(cart).forEach((item) => {
-    //   totalItems += item.qty;
-    //   totalPrice += item.qty * item.price;
-    // });
-    // setCartSummary({ totalItems, totalPrice });
+    let totalItems = 0, totalPrice = 0;
+    Object.values(cart).forEach(item => {
+      totalItems += item.qty;
+      totalPrice += item.qty * (item.variant?.offer_price || item.variant?.price);
+    });
+    setCartSummary({ totalItems, totalPrice });
   };
 
-  const addToCart = async (item) => {
-    if (Object.keys(profileDetails?.primary_address || {}).length == 0) {
-      navigation?.navigate('SelectLocation');
+  const addToCart = async (item, variant, variantIndex) => {
+    if (!profileDetails?.primary_address) {
+      navigation.navigate('SelectLocation');
       return;
     }
     try {
-      const selected = selectedVariants[item.item_id] || { variant: item.variant_list[0], index: 0 };
       const payload = {
         user_id: profile?.user_id,
-        variant_index: selected.index,
+        variant_index: variantIndex,
         item_id: item.item_id,
         store_id: storeId,
         type: "add",
@@ -142,43 +111,35 @@ const ProductListScreen = ({ route }) => {
         },
         body: JSON.stringify(payload),
       });
+
       const data = await response.json();
-      console.log(data, "datadatadatadata")
+
       if (data?.status) {
-        const variant = selected.variant;
-        setCartItems((prev) => {
+        const cartKey = `${item.item_id}_${variantIndex}`;
+        setCartItems(prev => {
           const updated = {
             ...prev,
-            [item.item_id]: {
+            [cartKey]: {
               ...item,
               qty: 1,
               price: variant.offer_price || variant.price,
+              variant,
+              variantIndex
             },
           };
           updateCartSummary(updated);
           return updated;
         });
-      } else {
-        ToastAndroid.show(data.message, ToastAndroid.SHORT);
-      }
-    } catch (error) {
-      console.error("Add to Cart Error:", error);
-      // alert("Error adding item to cart!");
-    }
+      } else ToastAndroid.show(data.message, ToastAndroid.SHORT);
+    } catch { }
   };
 
-  const increaseQty = async (itemId) => {
+  const increaseQty = async (cartKey) => {
+    if (!cartItems[cartKey]) return;
+
+    const item = cartItems[cartKey];
     try {
-      const item = cartItems[itemId];
-      const selected = selectedVariants[itemId] || { variant: item.variant_list?.[0], index: 0 };
-      const payload = {
-        user_id: profile?.user_id,
-        variant_index: selected.index,
-        item_id: itemId,
-        store_id: storeId,
-        type: "add",
-      };
-      const response = await fetch("https://bringesse.com:3003/api/cart/update", {
+      await fetch("https://bringesse.com:3003/api/cart/update", {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -187,37 +148,31 @@ const ProductListScreen = ({ route }) => {
           user_id: profile?.user_id,
           type: 'user',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          user_id: profile?.user_id,
+          variant_index: item.variantIndex,
+          item_id: item.item_id,
+          store_id: storeId,
+          type: "add"
+        }),
       });
-      const data = await response.json();
-      if (data?.status) {
-        setCartItems((prev) => {
-          const updated = { ...prev };
-          updated[itemId].qty += 1;
-          updateCartSummary(updated);
-          return updated;
-        });
-      } else {
-        alert("Failed to update quantity!");
-      }
-    } catch (error) {
-      console.error("Increase Qty Error:", error);
-    }
+
+      setCartItems(prev => {
+        const updated = { ...prev };
+        updated[cartKey].qty += 1;
+        updateCartSummary(updated);
+        return updated;
+      });
+
+    } catch { }
   };
-  const decreaseQty = async (itemId) => {
+
+  const decreaseQty = async (cartKey) => {
+    if (!cartItems[cartKey]) return;
+    const item = cartItems[cartKey];
+
     try {
-      const item = cartItems[itemId];
-      const selected = selectedVariants[itemId] || { variant: item.variant_list?.[0], index: 0 };
-
-      const payload = {
-        user_id: profile?.user_id,
-        variant_index: selected.index,
-        item_id: itemId,
-        store_id: storeId,
-        type: "remove",
-      };
-
-      const response = await fetch("https://bringesse.com:3003/api/cart/update", {
+      await fetch("https://bringesse.com:3003/api/cart/update", {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -226,28 +181,22 @@ const ProductListScreen = ({ route }) => {
           user_id: profile?.user_id,
           type: 'user',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          user_id: profile?.user_id,
+          variant_index: item.variantIndex,
+          item_id: item.item_id,
+          store_id: storeId,
+          type: "remove"
+        }),
       });
-
-      const data = await response.json();
-
-      if (data?.status) {
-        setCartItems((prev) => {
-          const updated = { ...prev };
-          if (updated[itemId].qty > 1) {
-            updated[itemId].qty -= 1;
-          } else {
-            delete updated[itemId];
-          }
-          updateCartSummary(updated);
-          return updated;
-        });
-      } else {
-        alert("Failed to update quantity!");
-      }
-    } catch (error) {
-      console.error("Decrease Qty Error:", error);
-    }
+      setCartItems(prev => {
+        const updated = { ...prev };
+        if (updated[cartKey].qty > 1) updated[cartKey].qty -= 1;
+        else delete updated[cartKey];
+        updateCartSummary(updated);
+        return updated;
+      });
+    } catch { }
   };
   const getStoreDetails = async () => {
     try {
@@ -261,315 +210,153 @@ const ProductListScreen = ({ route }) => {
           user_id: profile?.user_id,
           type: 'user',
         },
-        body: JSON.stringify({
-          store_id: storeId,
-          lon: 78.1616,
-          lat: 9.9,
-          type: "top",
-          store_search: "false",
-          search: "",
-        }),
+        body: JSON.stringify({ store_id: storeId, lon: 78.1616, lat: 9.9, type: "top", store_search: "false", search: "" }),
       });
-
       const data = await response.json();
-      if (data?.status === "true") {
-        console.log("allproduct", data);
-        setStoreData(data);
-      } else {
-        console.log("No data found");
-      }
-    } catch (error) {
-      console.error("Error fetching store details:", error);
-    } finally {
-      setLoading(false);
-    }
+      if (data?.status === "true") setStoreData(data);
+
+    } finally { setLoading(false); }
   };
 
   const handleSearch = (text) => {
     setSearchQuery(text);
     if (!text.trim()) {
-      // show all products when search is empty
       setFilteredTopProducts(storeData?.top_products || []);
       return;
     }
-
-    const filtered = storeData?.top_products?.filter((item) =>
+    const filtered = storeData?.top_products?.filter(item =>
       item.name?.toLowerCase().includes(text.toLowerCase())
     ) || [];
     setFilteredTopProducts(filtered);
   };
 
-  const toggleExpand = (section) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    if (section === "top") {
-      setExpandTop(!expandTop);
-      setExpandBest(false);
-    } else {
-      setExpandBest(!expandBest);
-      setExpandTop(false);
-    }
-  };
-
-  const handleVariantSelect = (itemId, variant, index) => {
-    setSelectedVariants((prev) => ({
-      ...prev,
-      [itemId]: { variant, index },
-    }));
-    setVariantModal({ visible: false, item: null });
-  };
-  const { theme } = useTheme();
-  const selectedVariantData = (item) => {
-    return selectedVariants[item.item_id]?.variant || item.variant_list?.[0];
-  };
-  const selectedIndexData = (item) => {
-    return selectedVariants[item.item_id]?.index ?? 0;
-  };
-  // if (loading) {
-  //   return (
-  //     <View style={styles.loaderContainer}>
-  //       <ActivityIndicator size="large" color="#00BFA6" />
-  //     </View>
-  //   );
-  // }
   const store = storeData?.store_information;
-  const topProducts = storeData?.top_products || [];
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, {
-        backgroundColor: COLORS[theme].background
-      }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
       <HeaderBar showBackArrow title="Product Details" />
-      <FlashMessage position="top" />
-      {
-        loading ?
-          <ActivityIndicator color={COLORS[theme].textPrimary} />
-          :
-          <View style={{ flex: 1, marginBottom: cartSummary?.length > 0 ? hp(8) : 0 }}>
+      {/* SEARCH BOX */}
+      <TextInput
+        style={[poppins.semi_bold.h7, styles.searchBox]}
+        placeholder="Search"
+        placeholderTextColor="#000"
+        value={searchQuery}
+        onChangeText={handleSearch}
+      />
+      {loading ? (
+        <ActivityIndicator color={COLORS[theme].textPrimary} />
+      ) : (
+        <View style={{ flex: 1, marginBottom: Object.keys(cartItems).length > 0 ? hp(10) : hp(1) }}>
+          <ScrollView showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: hp(5) }}
+          >
+            <FlatList
+              ListHeaderComponent={
+                <>
+                  {/* STORE INFORMATION */}
+                  {store && (
+                    <StoreDetailCard store={store} />
+                  )}
+                </>
+              }
+              data={filteredTopProducts}
+              keyExtractor={(item) => item.item_id.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.productCard}>
+                  {/* Product Image + Name */}
+                  <TouchableOpacity onPress={() => setselProdtedData(item)} style={{ flexDirection: "row" }}>
+                    <Image source={{ uri: item.image_url[0] }} style={styles.productImage} />
+                    <View style={{ flex: 1, marginLeft: wp(3) }}>
+                      <Text style={styles.productName}>{item.name}</Text>
+                      <Text numberOfLines={3} style={[poppins.regular.h8, {
+                      }]}>{item.description}</Text>
+                    </View>
+                  </TouchableOpacity>
 
-            <ScrollView style={[styles.container, {
-              backgroundColor: COLORS[theme].backgroundcolor,
-            }]} showsVerticalScrollIndicator={false}>
-              <>
-                {store && (
-                  <View style={styles.card}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      {store.top_store === "true" && (
-                        <TouchableOpacity style={styles.badge}>
-                          <Text style={[styles.badgeText, {
-                          }]}>Top Store</Text>
-                        </TouchableOpacity>
-                      )}
-                      <TouchableOpacity style={styles.badg}>
-                        <MaterialCommunityIcons name="food" color="#000" size={wp(8)} />
-                      </TouchableOpacity>
-                    </View>
-                    {/* <Text style={{ color: "#000" }}>{JSON.stringify(store?.isFood, null, 2)}</Text> */}
-                    <Image source={{ uri: store.image_url }} style={[styles.storeImage, {
-                      resizeMode: 'contain'
-                    }]} />
-                    <Text style={styles.storeName}>{store.name}</Text>
-                    <Text style={styles.address}>{store.address}</Text>
-                    <View style={styles.row}>
-                      <View style={styles.iconRow}>
-                        <MaterialCommunityIcons name="star" color="#00BFA6" size={18} />
-                        <Text style={styles.iconText}>{store.rating}</Text>
-                      </View>
-                      <View style={styles.iconRow}>
-                        <MaterialCommunityIcons name="map-marker" color="#00BFA6" size={18} />
-                        <Text style={styles.iconText}>{store.distance}</Text>
-                      </View>
-                      <View style={styles.iconRow}>
-                        <MaterialCommunityIcons name="clock-outline" color="#00BFA6" size={18} />
-                        <Text style={styles.iconText}>{store.packing_time} mins</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.timeRow}>
-                      <Text style={styles.timeText}>
-                        Open: {formatTo12Hour(store.opening_time)}
-                      </Text>
-                      <Text style={styles.timeText}>
-                        Close: {formatTo12Hour(store.closing_time)}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                {/* <View style={styles.tabRow}>
-              <Text style={[styles.tab, styles.activeTab]}>Product</Text>
-              <Text style={styles.tab}>Category’s</Text>
-              <Text style={styles.tab}>Reviews</Text>
-            </View> */}
-                <TextInput
-                  style={styles.searchBox}
-                  placeholder="Search"
-                  placeholderTextColor="#aaa"
-                  value={searchQuery}
-                  onChangeText={handleSearch}
-                />
-                <TouchableOpacity onPress={() => toggleExpand("top")} style={styles.sectionHeader}>
-                  <Text style={[styles.sectionTitle, {
-                    color: COLORS[theme].textPrimary
-                  }]}>Top Products</Text>
-                  <MaterialCommunityIcons
-                    name={expandTop ? "chevron-up" : "chevron-down"}
-                    size={24}
-                    color={COLORS[theme].textPrimary}
-                  />
-                </TouchableOpacity>
-                <FlatList
-                  contentContainerStyle={{ paddingBottom: wp(6) }} // <-- added here
-                  // extraData={filteredTopProducts}   // <— forces FlatList to re-render
-                  data={filteredTopProducts}
-                  keyExtractor={(item) => item.item_id.toString()}
-                  renderItem={({ item }) => {
-                    const variant = selectedVariantData(item);
-                    const index = selectedIndexData(item);
-                    console.log(JSON.stringify(item, null, 2), "itemitemitem")
-                    return (
-                      <View style={[styles.productCard, {
-                      }]}>
-                        <View style={{ flexDirection: "row" }}>
-                          <Image source={{ uri: item.image_url }} style={styles.productImage} />
-                          <View style={[styles.priceRow, {
-                            marginHorizontal: wp(2)
-                          }]}>
-                            <Text
-                              style={[
-                                styles.productName,
-                                { color: COLORS[theme].black, textTransform: "capitalize" }
-                              ]}
-                            >
-                              {item.name}
-                            </Text>
-                            <Text style={[styles.price, { color: COLORS[theme].black }]}>
-                              ₹{variant?.offer_price || variant?.price}
-                            </Text>
-                            {item.offer_available === "true" && (
-                              <Text style={[styles.oldPrice, { color: COLORS[theme].black }]}>
+                  {/* HORIZONTAL VARIANT LIST */}
+                  <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={item.variant_list}
+                    keyExtractor={(i, idx) => idx.toString()}
+                    contentContainerStyle={{ marginTop: wp(2) }}
+                    renderItem={({ item: variant, index }) => {
+                      const cartKey = `${item.item_id}_${index}`;
+                      const inCart = cartItems[cartKey];
+                      return (
+                        <View style={styles.variantCard}>
+                          <Text style={styles.variantText}>
+                            {variant.name} {variant.unit}
+                          </Text>
+                          {variant.offer_available === "true" ? (
+                            <View style={{ flexDirection: "row", alignItems: "center" }}>
+                              <Text
+                                style={[poppins.regular.h9, {
+                                  textDecorationLine: "line-through",
+                                  color: "gray",
+                                  marginRight: 6,
+                                }]}
+                              >
                                 ₹{variant?.price}
                               </Text>
-                            )}
-                            <Text
-                              style={[poppins.regular.h9,
-                              { color: COLORS[theme].black, textTransform: "capitalize" }
-                              ]}
+                              {/* Offer Price */}
+                              <Text style={[styles.variantPrice, { color: "green", fontWeight: "bold" }]}>
+                                ₹{variant.totalAmount}
+                              </Text>
+
+                            </View>
+                          ) : (
+                            <Text style={styles.variantPrice}>₹{variant.totalAmount}</Text>
+                          )}
+
+                          {inCart ? (
+                            <View style={styles.qtyRow}>
+                              <TouchableOpacity
+                                onPress={() => decreaseQty(cartKey)}
+                                style={styles.qtyButton}
+                              ><Text style={styles.qtyButtonText}>-</Text></TouchableOpacity>
+
+                              <Text style={styles.qtyText}>{inCart.qty}</Text>
+
+                              <TouchableOpacity
+                                onPress={() => increaseQty(cartKey)}
+                                style={styles.qtyButton}
+                              ><Text style={styles.qtyButtonText}>+</Text></TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => addToCart(item, variant, index)}
+                              style={styles.addButton}
                             >
-                              {item?.noOfDaysToReturn ? `Need a return? You have ${item?.noOfDaysToReturn} days`:"No Return"}
-                            </Text>
-                          </View>
+                              <Text style={styles.addButtonText}>Add</Text>
+                            </TouchableOpacity>
+                          )}
                         </View>
-                        {/* Variant selector (uncomment if ne1444eded) */}
-                        {/* {item.variant_list?.length > 0 && (
-                          <TouchableOpacity
-                            style={styles.variantSelector}
-                            onPress={() => setVariantModal({ visible: true, item })}
-                          >
-                            <Text style={styles.variantText}>
-                              {variant?.name} {variant?.unit}
-                            </Text>
-                            <MaterialCommunityIcons name="chevron-down" size={22} color="#333" />
-                          </TouchableOpacity>
-                        )} */}
-                        {cartItems[item.item_id] ? (
-                          <View style={styles.qtyRow}>
-                            <TouchableOpacity
-                              style={styles.qtyButton}
-                              onPress={() => decreaseQty(item.item_id)}
-                            >
-                              <Text style={styles.qtyButtonText}>-</Text>
-                            </TouchableOpacity>
-
-                            <Text style={styles.qtyText}>{cartItems[item.item_id].qty}</Text>
-
-                            <TouchableOpacity
-                              style={styles.qtyButton}
-                              onPress={() => increaseQty(item.item_id)}
-                            >
-                              <Text style={styles.qtyButtonText}>+</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ) : (
-                          <TouchableOpacity
-                            onPress={() => addToCart(item)}
-                            style={styles.addButton}
-                          >
-                            <Text style={styles.addButtonText}>{"Add to cart"}</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    );
-                  }}
-                  ListHeaderComponent={expandTop ? null : null}
-                  ListEmptyComponent={(
-                    <>
-                      <Text style={[poppins.regular.h5, { alignSelf: "center", margin: wp(4), color: COLORS[theme].textPrimary }]}>No Product found</Text>
-                    </>
-                  )}
-                />
-
-                {expandBest && (
-                  <View style={styles.productCard}>
-                    <Text style={{ textAlign: "center", color: "#888" }}>
-                      No Best Sellers Yet
-                    </Text>
-                  </View>
-                )}
-              </>
-            </ScrollView>
-          </View>
-      }
-      <Modal
-        visible={variantModal.visible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setVariantModal({ visible: false, item: null })}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Select Variant</Text>
-            <FlatList
-              data={variantModal.item?.variant_list || []}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={({ item, index }) => (
-                <TouchableOpacity
-                  style={styles.modalItem}
-                  onPress={() =>
-                    handleVariantSelect(variantModal.item.item_id, item, index)
-                  }
-                >
-                  <Text style={styles.modalItemText}>
-                    {item.name} {item.unit} - ₹{item.offer_price || item.price}
-                  </Text>
-                </TouchableOpacity>
+                      );
+                    }}
+                  />
+                </View>
               )}
             />
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setVariantModal({ visible: false, item: null })}
-            >
-              <Text style={styles.modalCloseText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
-      </Modal>
-      {cartSummary.length > 0 && (
-        <View style={[styles.bottomBar, {
-          backgroundColor: COLORS[theme].accent
-        }]}>
-          <Text style={styles.bottomBarText}>
-            {cartSummary?.length + " items in cart"}
-          </Text>
+      )}
+
+      {/* PRODUCT MODAL */}
+      <ProductDetailModal
+        productData={selProdtedData}
+        addCart={(productData, variant, index) => addToCart(productData, variant, index)}
+        close={() => setselProdtedData(null)}
+      />
+
+      {/* CART BOTTOM BAR */}
+      {Object.keys(cartItems).length > 0 && (
+        <View style={styles.bottomBar}>
+          <Text style={styles.bottomBarText}>{Object.keys(cartItems).length} items in cart</Text>
           <TouchableOpacity
-            style={[styles.viewCartBtn, {
-              height: hp(4), padding: wp(1)
-            }]}
+            style={styles.viewCartBtn}
             onPress={() => navigation.navigate("Mycart", { showBackArrow: true })}
           >
-            <Text style={[styles.viewCartText, {
-              color: COLORS[theme].accent
-            }]}>View</Text>
+            <Text style={styles.viewCartText}>View</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -578,109 +365,150 @@ const ProductListScreen = ({ route }) => {
 };
 
 export default ProductListScreen;
+
+/* --------------------------- STYLES ---------------------------- */
+
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: wp(1) },
-  loaderContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1 },
   card: {
-    backgroundColor: "#c9c9c9", borderRadius: wp(2),
-    padding: wp(3), marginBottom: 12,
-    shadowColor: "#000", shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 5, elevation: 3,
+    backgroundColor: "#F0F0F0",
+    borderRadius: wp(2),
+    padding: wp(2),
+    margin: wp(2),
   },
-  storeName: { fontSize: wp(4), fontWeight: "bold", marginBottom: wp(2), color: "#000", textTransform: "capitalize" },
-  address: { fontSize: 13, color: "#777", marginBottom: 10 },
-  row: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  iconRow: { flexDirection: "row", alignItems: "center", marginRight: 15 },
-  iconText: { marginLeft: 4, color: "#333", fontSize: 13 },
+  storeName: { fontSize: wp(4), fontWeight: "bold", marginTop: wp(2), color: "#000" },
+  address: { fontSize: wp(3), color: "#555" },
   badge: {
-    backgroundColor: "#E5F9F5", alignSelf: "flex-start", borderRadius: 8,
-    paddingVertical: wp(0.5), paddingHorizontal: 10,
+    backgroundColor: "#E5F9F5",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: "flex-start"
   },
-  badgeText: { color: "#00BFA6", fontWeight: "600", fontSize: wp(2.5) },
-  timeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
-  timeText: { color: "#444", fontSize: 13 },
-  tabRow: {
-    flexDirection: "row", justifyContent: "space-around",
-    marginVertical: 10, borderBottomWidth: 1,
-    borderColor: "#eee", paddingBottom: 5,
+  badgeText: { fontSize: wp(2.5), color: "#009a44", fontWeight: "600" },
+  storeImage: {
+    width: wp(15),
+    height: wp(15),
+    borderRadius: 10
   },
-  tab: { fontSize: 15, color: "#777" },
-  activeTab: { color: "#00BFA6", fontWeight: "600" },
+
   searchBox: {
     backgroundColor: "#F6F6F6",
-    borderRadius: 10, padding: 10, marginBottom: wp(1),
-    color: "#000",
+    padding: wp(3),
+    borderRadius: 10,
+    margin: wp(1),
+    color: "#000", marginHorizontal: wp(4)
   },
-  sectionHeader: {
-    flexDirection: "row", justifyContent: "space-between",
-    alignItems: "center", marginTop: 12,
+
+  sectionTitle: {
+    fontSize: wp(5),
+    fontWeight: "700",
+    marginLeft: wp(2),
+    marginTop: wp(2),
   },
-  sectionTitle: { fontSize: 17, fontWeight: "700" },
+
   productCard: {
     backgroundColor: "#fff",
-    borderRadius: wp(1), padding: wp(2), margin:wp(1),
-    shadowColor: "#000", shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4, elevation: 2,
+    elevation: 2,
+    borderRadius: 8,
+    marginHorizontal: wp(2),
+    marginVertical: wp(1.5),
+    padding: wp(3),
   },
-  productImage: { width: "25%", height: hp(10), borderRadius: 12 },
-  productName: { fontSize: 16, fontWeight: "bold", marginTop: 8 },
-  priceRow: { flexDirection: "column", },
-  price: { fontSize: 18, fontWeight: "bold" },
-  oldPrice: { fontSize: 16, color: "#999", textDecorationLine: "line-through" },
+  productImage: {
+    width: wp(20),
+    height: wp(20),
+    borderRadius: 10,
+    resizeMode: "cover",
+  },
+
+  productName: {
+    fontSize: wp(4),
+    fontWeight: "bold",
+    color: "#000",
+    textTransform: "capitalize"
+  },
+
+  /* ---- Variant Horizontal Card ---- */
+  variantCard: {
+    backgroundColor: "#F7F7F7",
+    padding: wp(3),
+    marginRight: wp(3),
+    borderRadius: wp(2),
+    width: wp(35),
+    alignItems: "center",
+  },
+
+  variantText: {
+    fontSize: wp(3.2),
+    fontWeight: "600",
+    textAlign: "center",
+    color: "#000",
+  },
+
+  variantPrice: {
+    fontSize: wp(3.5),
+    fontWeight: "bold",
+    color: "#009a44",
+    marginVertical: wp(1.5),
+  },
+
   addButton: {
-    backgroundColor: "#E6FAF8",
-    borderRadius: 8, marginTop: 8,
-    paddingVertical: 10,
+    backgroundColor: "#009a4433",
+    paddingHorizontal: wp(5),
+    paddingVertical: wp(1),
+    borderRadius: wp(2),
   },
-  addButtonText: { color: "#00BFA6", textAlign: "center", fontWeight: "600" },
-  qtyRow: {
-    flexDirection: "row",
-    justifyContent: "center", alignItems: "center", marginTop: 8,
+
+  addButtonText: {
+    color: "#009a44",
+    fontWeight: "600",
+    textAlign: "center",
   },
+
+  qtyRow: { flexDirection: "row", alignItems: "center" },
+
   qtyButton: {
     backgroundColor: "#E6FAF8",
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6,
+    paddingHorizontal: wp(3),
+    paddingVertical: wp(1),
+    borderRadius: wp(1.5),
   },
-  qtyButtonText: { color: "#00BFA6", fontSize: 18, fontWeight: "bold" },
-  qtyText: { fontSize: 16, fontWeight: "bold", marginHorizontal: 12, color: "#000" },
-  variantSelector: {
-    borderWidth: 1, borderColor: "#ccc",
-    borderRadius: 8, paddingHorizontal: 10,
-    paddingVertical: 10,
-    marginTop: 6, flexDirection: "row",
+
+  qtyButtonText: {
+    color: "#009a44",
+    fontSize: wp(5),
+    fontWeight: "bold",
+  },
+
+  qtyText: {
+    marginHorizontal: wp(2),
+    fontSize: wp(4),
+    fontWeight: "700",
+    color: "#000"
+  },
+
+  bottomBar: {
+    position: "absolute",
+    bottom: hp(2),
+    left: wp(2),
+    right: wp(2),
+    backgroundColor: "#009a44",
+    borderRadius: 10,
+    padding: wp(4),
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  variantText: { color: "#333", fontSize: 14 },
-  modalOverlay: {
-    flex: 1, backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "flex-end",
-  },
-  modalContainer: {
-    backgroundColor: "#222", borderTopLeftRadius: 16,
-    borderTopRightRadius: 16, maxHeight: "60%",
-    padding: 16,
-  },
-  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
-  modalItem: { paddingVertical: 12, borderBottomWidth: 1, borderColor: "#eee" },
-  modalItemText: { fontSize: 15 },
-  modalCloseButton: {
-    backgroundColor: "#00BFA6", marginTop: 12, borderRadius: 8, paddingVertical: 12,
-  },
-  modalCloseText: { textAlign: "center", color: "#000", fontWeight: "600" },
-  bottomBar: {
-    position: "absolute", bottom: hp(4), left: hp(1), right: 0,
-    flexDirection: "row", justifyContent: "space-between",
-    alignItems: "center", height: hp(6),
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderRadius: wp(2), marginHorizontal: wp(2), width: wp(90), alignSelf: 'center'
-  },
-  bottomBarText: { color: "#fff", fontWeight: "600", fontSize: wp(5) },
+  bottomBarText: { color: "#fff", fontSize: wp(4), fontWeight: "600" },
   viewCartBtn: {
     backgroundColor: "#fff",
     borderRadius: 8,
+    paddingHorizontal: wp(4),
+    paddingVertical: wp(1),
   },
-  viewCartText: { color: "#00BFA6", fontWeight: "600", lineHeight: hp(3), paddingHorizontal: wp(3) },
+  viewCartText: {
+    color: "#009a44",
+    fontWeight: "700",
+  },
 });

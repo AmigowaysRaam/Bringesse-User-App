@@ -1,17 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Image, ScrollView } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../resources/colors';
 import { hp, wp } from '../resources/dimensions';
-
 const CarouselData = ({ banner }) => {
+    
     const { theme } = useTheme();
-    const { t } = useTranslation();
-
     const scrollViewRef = useRef(null);
     const [currentIndex, setCurrentIndex] = useState(0);
-    // Automatically scroll to the next item
     useEffect(() => {
         const intervalId = setInterval(() => {
             setCurrentIndex((prevIndex) => {
@@ -22,7 +18,6 @@ const CarouselData = ({ banner }) => {
         }, 2000);
         return () => clearInterval(intervalId); // Cleanup on unmount
     }, [banner?.admin_banner.length]);
-
     return (
         <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
             <ScrollView
@@ -32,7 +27,7 @@ const CarouselData = ({ banner }) => {
                 contentContainerStyle={styles.scrollContainer}
                 pagingEnabled
                 scrollEventThrottle={16}
-                onScrollEndDrag={() => clearInterval(currentIndex)} // Stop autoplay on manual drag
+                onScrollEndDrag={() => clearInterval(currentIndex)}
             >
                 {banner?.admin_banner.map((item, index) => (
                     <View key={item.id} style={styles.card}>
@@ -53,24 +48,17 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         flexDirection: 'row', // Ensure horizontal scrolling
-    },
-    card: {
-        width: wp(100), // Full width of the screen
-        height: wp(40), // Adjust the height based on your desired aspect ratio
-        justifyContent: 'center',
-        alignItems: 'center',
+    }, card: {
+        width: wp(100), height: wp(45),
+        justifyContent: 'center', alignItems: 'center',
     },
     profileImage: {
-        width: '100%', // Image takes full width
-        height: "100%", // Image height adjusted similarly
-        borderRadius: wp(1),
+        width: '100%', height: "100%", // Image height adjusted similarly
+        borderRadius: wp(1), resizeMode: "contain",
     },
     textContainer: {
         position: 'absolute',
-        bottom: hp(2),
-        left: 0,
-        right: 0,
-        alignItems: 'center',
+        bottom: hp(2), left: 0, right: 0, alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'rgba(0, 0, 0, 0.5)', // Background overlay for the text
         paddingVertical: hp(1),
@@ -80,5 +68,4 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
-
 export default CarouselData;

@@ -18,9 +18,7 @@ import FlashMessage, { showMessage } from 'react-native-flash-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
 import DeviceInfo from 'react-native-device-info';
-
 const LoginScreen = () => {
-
   // Hooks
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -29,7 +27,6 @@ const LoginScreen = () => {
   const {
     actions: { APP_REGISTER_LOGIN_API_CALL },
   } = useAuthHoc();
-
   // State
   const [email, setEmail] = useState('teat@gmail.com');
   const [password, setPassword] = useState('123456');

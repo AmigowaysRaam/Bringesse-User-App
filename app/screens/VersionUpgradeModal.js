@@ -63,7 +63,7 @@ const VersionUpgradeModal = () => {
                 }
             } catch (err) {
                 console.warn('❌ Version check error:', err);
-                Alert.alert('Error', 'Unable to check app version.');
+                // Alert.alert('Error', 'Unable to check app version.');
             }
         };
 

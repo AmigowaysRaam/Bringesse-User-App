@@ -20,7 +20,7 @@ const APP_GET_REVENUE_API = {
   method: 'POST',
   responseDataKey: 'data',
 };
-
+// https://bringesse.com:3003/api/appdefaults
 // APP_SITE_SETTING_API
 const APP_SITE_SETTING_API = {
   url: `${API_BASE_URL}/appdefaults`,

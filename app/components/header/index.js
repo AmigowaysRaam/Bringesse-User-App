@@ -1,5 +1,11 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import React from 'react';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Animated,
+} from 'react-native';
+import React, { useEffect, useRef } from 'react';
 import { hp, wp } from '../../resources/dimensions';
 import { poppins } from '../../resources/fonts';
 import { useNavigation } from '@react-navigation/native';
@@ -8,14 +14,6 @@ import Icons from 'react-native-vector-icons/Ionicons';
 import { commonStyles } from '../../resources/styles';
 import { useTheme } from '../../context/ThemeContext';
 
-/**
- * HeaderBar Component
- * @param {boolean} showBackArrow - Whether to show the left back arrow.
- * @param {string} title - The main title text.
- * @param {string} subMenu - Optional subtitle text.
- * @param {boolean} showRightArrow - Whether to show the right arrow icon.
- * @param {function} onRightArrowPress - Function triggered when right arrow is pressed.
- */
 const HeaderBar = ({
   showBackArrow = false,
   title = '',
@@ -26,10 +24,38 @@ const HeaderBar = ({
   const navigation = useNavigation();
   const { theme } = useTheme();
 
+  // 🔹 Animation value
+  const slideAnim = useRef(new Animated.Value(-hp(10))).current;
+
+  useEffect(() => {
+    if (showRightArrow !== '') {
+      const timer = setTimeout(() => {
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 350,
+          useNativeDriver: true,
+        }).start();
+      }, 800); // ⏱ 1 second delay
+  
+      return () => clearTimeout(timer);
+    } else {
+      slideAnim.setValue(0); // No animation
+    }
+  }, [showRightArrow]);
+  
   return (
-    <View style={[{ alignItems: 'center' }, commonStyles[theme].shadow]}>
-      <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
-        
+    <Animated.View
+      style={[
+        { alignItems: 'center', transform: [{ translateY: slideAnim }] },
+        commonStyles[theme].shadow,
+      ]}
+    >
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: COLORS[theme].background },
+        ]}
+      >
         {/* Left Back Arrow */}
         {showBackArrow && (
           <TouchableOpacity
@@ -82,8 +108,9 @@ const HeaderBar = ({
             </Text>
           )}
         </View>
+
         {/* Right Arrow */}
-        {showRightArrow != '' && (
+        {showRightArrow !== '' && (
           <TouchableOpacity
             onPress={onRightArrowPress}
             style={styles.rightButton}
@@ -96,10 +123,9 @@ const HeaderBar = ({
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
@@ -121,5 +147,4 @@ const styles = StyleSheet.create({
     marginLeft: wp(2),
   },
 });
-
 export default HeaderBar;

@@ -6,22 +6,19 @@ import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../resources/colors';
 import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
-
-const StoreListData = ({ banner,useCurrentLocation }) => {
+const StoreListData = ({ banner, useCurrentLocation }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation();
-
   // Merge all store lists & add store_type field
   const storeList = [
     ...(banner?.store_small?.map(item => ({ ...item, store_type: 'small' })) || []),
     ...(banner?.store_medium?.map(item => ({ ...item, store_type: 'medium' })) || []),
     ...(banner?.store_large?.map(item => ({ ...item, store_type: 'large' })) || []),
+    ...(banner?.store_mini?.map(item => ({ ...item, store_type: 'mini' })) || []),
   ];
-
   return (
     <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
-
       <FlatList
         data={storeList}
         showsVerticalScrollIndicator={false}
@@ -39,17 +36,38 @@ const StoreListData = ({ banner,useCurrentLocation }) => {
         )}
         renderItem={({ item }) => (
           <TouchableOpacity
+            disabled={
+              item.isActive != 'true'
+            }
             style={[styles.card, { backgroundColor: COLORS[theme].cardBackground }]}
-            onPress={() => navigation.navigate('ProductList', { storeId: item.store_id,useCurrentLocation })}
+            onPress={() => item?.isActive == 'true' && navigation.navigate('ProductList', { storeId: item.store_id, useCurrentLocation })}
           >
             <Text>
+              {/* {item?.static_image_url} */}
             </Text>
             {/* Image */}
             <Image
               source={{ uri: item.image_url }}
-              style={styles.profileImage}
+              style={[styles.profileImage, {
+                opacity: item.isActive !== 'true' ? 0.2 : 1
+                // backgroundColor: 'rgba(0,0,0,0.45)', // reduce saturation
+              }]}
               resizeMode='contain'
             />
+            {item.isActive !== 'true' && item?.static_image_url &&
+              <Image
+                // source={IMAGE_ASSETS.shopclosed}
+                source={{ uri: item?.static_image_url || "https://via.placeholder.com/150" }}
+                style={[{
+                  width: wp(50),
+                  height: hp(15),
+                  position: "absolute",
+                  left:hp(0),top:1,
+                }]}
+                resizeMode="contain"
+              />
+            }
+
             {/* Store Name */}
             <Text
               style={[
@@ -59,7 +77,17 @@ const StoreListData = ({ banner,useCurrentLocation }) => {
               ]}
               numberOfLines={1}
             >
-              {item?.store_name} 
+              {item?.store_name}
+            </Text>
+            <Text
+              style={[
+                poppins.regular.h9,
+                // styles.categoryText,
+                { color: COLORS[theme].primary, paddingHorizontal: wp(3) },
+              ]}
+              numberOfLines={1}
+            >
+              {item?.store_status}
             </Text>
             {/* Store Information Row */}
             <View style={styles.infoRow}>
@@ -83,7 +111,6 @@ const StoreListData = ({ banner,useCurrentLocation }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     marginVertical: hp(2),
@@ -97,14 +124,10 @@ const styles = StyleSheet.create({
     borderRadius: wp(3),
     marginBottom: hp(2),
     paddingBottom: hp(1),
-    // alignItems: 'center',
-    // Shadow for iOS
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 6,borderBottomWidth:1,borderColor:'#ccc',
-
-    // Elevation for Android
+    shadowRadius: 6, borderBottomWidth: 1, borderColor: '#ccc',
     elevation: 4,
   },
   profileImage: {
@@ -127,9 +150,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '90%',
     marginTop: hp(1),
-    marginLeft:hp(2)
-    
+    marginLeft: hp(2)
+
   },
 });
-
 export default StoreListData;

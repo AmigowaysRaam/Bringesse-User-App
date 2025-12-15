@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { COLORS } from '../../resources/colors';
 import { wp, hp } from '../../resources/dimensions';
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { poppins } from '../../resources/fonts';
 const SelectionModal = ({
   visible,
   data = [],
@@ -54,14 +55,13 @@ const SelectionModal = ({
         }
       >
         {multiSelect && (
-          // <Text style={{ color: COLORS[theme].accent }}>✓</Text>
           <MaterialCommunityIcon
             name={isSelected ? "check-circle" : 'circle-outline'}
             size={wp(6)}
             color={COLORS[theme].white} style={{ marginRight: wp(3) }}
           />
         )}
-        <Text style={[styles.itemText, { color: COLORS[theme].textPrimary }]}>
+        <Text style={[poppins.regular.h6,styles.itemText, { color: COLORS[theme].textPrimary }]}>
           {item?.label}
         </Text>
 
@@ -75,9 +75,8 @@ const SelectionModal = ({
         <TouchableWithoutFeedback onPress={onDismiss}>
           <View style={styles.overlay} />
         </TouchableWithoutFeedback>
-
         <View style={[styles.modalContainer, { backgroundColor: COLORS[theme].background }]}>
-          <Text style={[styles.title, { color: COLORS[theme].textPrimary }]}>{title}</Text>
+          <Text style={[poppins.semi_bold.h5,styles.title, { color: COLORS[theme].textPrimary }]}>{title}</Text>
 
           <FlatList
             data={data}

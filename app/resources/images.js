@@ -15,6 +15,9 @@ const IMAGE_ASSETS = {
   galeryIco:require('../assets/images/galeryIco.png'),
   ic_pickup_marker:require('../assets/images/ic_pickup_marker.png'),
   mantainceModde:require('../assets/images/mantainceModde.png'),
+  shopclosed:require('../assets/images/shopclosed.png'),
+  bringesUser:require('../assets/images/user.png'),
+  seller:require('../assets/images/seller.jpg'),
 };
 const ICON_ASSETS = {
 };

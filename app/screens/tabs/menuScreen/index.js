@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Alert,
+  BackHandler,
 } from 'react-native';
 import { hp, wp } from '../../../resources/dimensions';
 import { Icon } from 'react-native-paper';
@@ -143,31 +144,25 @@ const MoreScreen = () => {
   const accessToken = useSelector(state => state.Auth.accessToken);
   const dispatch = useDispatch();
   const siteDetails = useSelector(state => state.Auth.siteDetails);
+
   const checkUpdate = async () => {
-    const currentVersion = VersionCheck?.getCurrentVersion();
-    // const latestVersion = await VersionCheck.getLatestVersion();
-    const latestVersion = await VersionCheck.getLatestVersion({ provider: 'playStore' });
-    if (shouldUpdate(currentVersion, latestVersion)) {
-      console.log('❗ Update required');
-    } else {
-      console.log('✅ App is up to date');
-    } if (currentVersion && latestVersion && currentVersion !== latestVersion) {
-      console.log('Update available!', currentVersion, latestVersion);
-    } else {
-      console.log('App is up to date.');
-    }
   };
-  const shouldUpdate = (currentVersion, minVersion) => {
-    const current = currentVersion.split('.').map(Number); // [1, 0, 3]
-    const minimum = minVersion.split('.').map(Number);     // [1, 0, 5]
-    for (let i = 0; i < Math.max(current.length, minimum.length); i++) {
-      const cur = current[i] || 0;
-      const min = minimum[i] || 0;
-      if (cur < min) return true;  // Needs update
-      if (cur > min) return false; // Current is already newer
-    }
-    return false; // Versions are equal
-  };
+
+  useFocusEffect(
+  React.useCallback(() => {
+    const onBackPress = () => {
+      // block back ONLY on this screen
+      return true;
+    };
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress
+    );
+
+    return () => subscription.remove();
+  }, [])
+);
+  
   useFocusEffect(
     useCallback(() => {
       checkUpdate();
@@ -204,9 +199,7 @@ const MoreScreen = () => {
   const SectionItem = ({ icon, label, navigationPath }) => (
     <TouchableOpacity onPress={
       () => {
-        // label !== 'razorpay' ? 
         navigation?.navigate(navigationPath)
-        // :          fnGetRazorPay()
       }
     } style={{ backgroundColor: COLORS[theme].viewBackground }}>
       <View style={sectionRow}>
@@ -229,7 +222,6 @@ const MoreScreen = () => {
       </View>
     </TouchableOpacity>
   );
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
@@ -240,18 +232,17 @@ const MoreScreen = () => {
           showsVerticalScrollIndicator={false}
           style={{ flex: 1 }}
           contentContainerStyle={{
-            paddingVertical: hp(2),
             paddingBottom: hp(5),
-            gap: wp(2),
-            marginHorizontal: wp(2),
+            gap: wp(1),
+            // marginHorizontal: wp(2),
           }}>
           {/* <SectionItem icon="trackpad-lock" navigation={navigation} label="Payment screen" navigationPath='PaymentCheck' /> */}
           <SectionItem icon="cart" navigation={navigation} label="Orders History" navigationPath='OrdersHistory' />
           {/* <SectionItem icon="archive-star" navigation={navigation} label="reviews" navigationPath='TermsAndCondtions' /> */}
           <SectionItem icon="shield-check" navigation={navigation} label="Terms and Conditions" navigationPath='TermsAndCondtions' />
           <SectionItem icon="trackpad-lock" navigation={navigation} label="Privacy and Policy" navigationPath='PrivacyandPolicy' />
-
-          {/* <SectionItem icon="cart-outline" navigation={navigation} label="My cart" navigationPath='Mycart' /> */}
+          <SectionItem icon="share-all-outline" navigation={navigation} label="Share & Connect" navigationPath='QuickShare' />
+          {/* <SectionItem icon="face-agent" navigation={navigation} label="Customer Support" navigationPath='CustomerSupport' /> */}
           <ThemeSection />
           {/* <LangSection /> */}
           <LogoutSection profileD={profileD} accessToken={accessToken} />
@@ -280,19 +271,15 @@ const MoreScreen = () => {
     </GestureHandlerRootView>
   );
 };
-
 // --- Common Styles ---
 const sectionRow = {
   flexDirection: 'row',
-  paddingVertical: wp(4), paddingEnd: wp(4),
+  paddingVertical: wp(3), paddingEnd: wp(4),
   alignItems: 'center', justifyContent: 'space-between',
-  gap: wp(3.5),
 };
-
 const leftRow = {
   flexDirection: 'row',
   alignItems: 'center', marginStart: wp(8),
   gap: wp(4),
 };
-
 export default MoreScreen;

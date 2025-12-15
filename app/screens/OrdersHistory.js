@@ -1,4 +1,9 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
@@ -8,7 +13,9 @@ import {
   RefreshControl,
   Image,
   TouchableOpacity,
+  TextInput,
 } from 'react-native';
+
 import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 import { COLORS } from '../resources/colors';
@@ -19,134 +26,120 @@ import { useTranslation } from 'react-i18next';
 import HeaderBar from '../components/header';
 import { fetchData } from '../api/api';
 import { useSelector } from 'react-redux';
-import DeviceInfo from 'react-native-device-info';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import moment from 'moment';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 const OrdersHistory = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const navigation = useNavigation(); // ✅ Move useNavigation to top-level
+  const navigation = useNavigation();
+
   const profile = useSelector(state => state.Auth.profileDetails);
   const accessToken = useSelector(state => state.Auth.accessToken);
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fetchingMore, setFetchingMore] = useState(false);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
-  const limit = 10;
+  /* ------------------------------------
+     Fetch Orders
+  ------------------------------------ */
+  const fetchOrders = useCallback(async () => {
+    if (!accessToken || !profile?.user_id) return;
+    const payload = {
+      user_id: profile.user_id,
+      page: 1,
+      limit: 10000,
+    };
+    const headers = {
+      Authorization: `${accessToken}`,
+      user_id: profile.user_id,
+      type: 'user',
+    };
 
-  const fetchOrders = useCallback(
-    async (pageNumber = 1) => {
-      if (!accessToken || !profile?.user_id) return;
-      const deviceId = await DeviceInfo.getUniqueId();
-
-      const payload = {
-        user_id: profile.user_id,
-        page: pageNumber,
-        limit: limit,
-      };
-      const headers = {
-        Authorization: `${accessToken}`,
-        user_id: profile.user_id,
-        type: 'user',
-      };
-
-      try {
-        if (pageNumber === 1) {
-          setLoading(true);
-        } else {
-          setFetchingMore(true);
-        }
-
-        const data = await fetchData('orderhistory', 'POST', payload, headers);
-
-        if (data?.status === 'true' && Array.isArray(data.orders)) {
-          if (pageNumber === 1) {
-            setOrders(data.orders);
-          } else {
-            setOrders(prev => [...prev, ...data.orders]);
-          }
-          setHasMore(data.orders.length >= limit);
-        } else {
-          if (pageNumber === 1) setOrders([]);
-          setHasMore(false);
-        }
-      } catch (err) {
-        console.error('Order fetch error:', err);
-      } finally {
-        setLoading(false);
-        setFetchingMore(false);
-        setRefreshing(false);
+    try {
+      setLoading(true);
+      const data = await fetchData('orderhistory', 'POST', payload, headers);
+      if (data?.status === 'true' && Array.isArray(data.orders)) {
+        setOrders(data.orders);
+      } else {
+        setOrders([]);
       }
-    },
-    [accessToken, profile?.user_id]
-  );
+    } catch (err) {
+      console.log('Order fetch error:', err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [accessToken, profile?.user_id]);
 
   useEffect(() => {
-    setPage(1);
-    fetchOrders(1);
+    fetchOrders();
   }, [fetchOrders]);
-
-  const handleLoadMore = () => {
-    if (!fetchingMore && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchOrders(nextPage);
-    }
-  };
-  const onRefresh = () => {
-    setRefreshing(true);
-    setPage(1);
-    fetchOrders(1);
-  };
-
 
   useFocusEffect(
     useCallback(() => {
-      onRefresh();
-    // Ensure we get location first
-    }, [navigation])
+      fetchOrders();
+    }, [fetchOrders])
   );
 
-  const formatDate = dateStr => {
-    if (!dateStr) return '';
-    return moment(dateStr).fromNow();
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchOrders();
   };
 
-  const renderFooter = () =>
-    fetchingMore ? (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator color={COLORS[theme].accent} />
-      </View>
-    ) : null;
+  /* ------------------------------------
+     Helpers
+  ------------------------------------ */
+  const formatExactDate = date =>
+    date ? moment(date).format('DD MMM YYYY, hh:mm A') : '';
 
-  // ✅ FIXED renderItem (hooks moved out)
+  /* ------------------------------------
+     Search Filter
+  ------------------------------------ */
+  const filteredOrders = useMemo(() => {
+    if (!searchText.trim()) return orders;
+
+    const text = searchText.toLowerCase();
+
+    return orders.filter(item =>
+      item?.store_name?.toLowerCase().includes(text) ||
+      item?.order_id?.toString().includes(text) ||
+      item?.uniqueId?.toString().includes(text)
+    );
+  }, [orders, searchText]);
+
+  /* ------------------------------------
+     Render Item
+  ------------------------------------ */
   const renderItem = ({ item }) => (
     <TouchableOpacity
       onPress={() =>
         navigation.navigate('OrderDetail', { orderId: item.order_id })
       }
       activeOpacity={0.8}
-      style={[styles.card, { backgroundColor: COLORS[theme].viewBackground }]}
+      style={[
+        styles.card,
+        { backgroundColor: COLORS[theme].viewBackground },
+      ]}
     >
-      <View style={styles.logoContainer}>
-        <Image
-          source={{
-            uri: item.image_url || 'https://via.placeholder.com/80x80.png?text=No+Image',
-          }}
-          style={styles.logo}
-        />
-      </View>
+      <Image
+        resizeMode="contain"
+        source={{
+          uri:
+            item.image_url ||
+            'https://via.placeholder.com/80x80.png?text=No+Image',
+        }}
+        style={styles.logo}
+      />
 
       <View style={{ flex: 1 }}>
         <Text
           style={[
             poppins.semi_bold.h8,
-            { color: COLORS[theme].textPrimary, textTransform: 'capitalize' },
+            { color: COLORS[theme].textPrimary },
           ]}
         >
           {item.store_name}
@@ -158,20 +151,26 @@ const OrdersHistory = () => {
             { color: COLORS[theme].textPrimary, marginTop: wp(1) },
           ]}
         >
-          Order ID: {item.order_id?.slice(-6) || '-'}
+          Order ID: {item?.uniqueId || item?.order_id?.slice(-6)}
         </Text>
 
+        {/* Exact Date */}
         <Text
           style={[
             poppins.regular.h8,
             { color: COLORS[theme].textPrimary, marginTop: wp(1) },
           ]}
         >
-          {formatDate(item.ordered_time)}
+          {formatExactDate(item.ordered_time)}
         </Text>
 
         <View style={styles.rowBetween}>
-          <Text style={[poppins.semi_bold.h8, { color: COLORS[theme].accent }]}>
+          <Text
+            style={[
+              poppins.semi_bold.h8,
+              { color: COLORS[theme].accent },
+            ]}
+          >
             {item.currency_symbol}
             {item.grand_total}
           </Text>
@@ -181,9 +180,7 @@ const OrdersHistory = () => {
               styles.statusBadge,
               {
                 backgroundColor:
-                  item.order_status === 'pending'
-                    ? 'orange'
-                    : 'green',
+                  item.order_status === 'pending' ? 'orange' : 'green',
               },
             ]}
           >
@@ -201,63 +198,83 @@ const OrdersHistory = () => {
     </TouchableOpacity>
   );
 
+  /* ------------------------------------
+     UI
+  ------------------------------------ */
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <HeaderBar title={t('Orders History')} showBackArrow={true} />
-
-      <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
-        {loading ? (
-          <View style={styles.loader}>
-            <ActivityIndicator size="large" color={COLORS[theme].accent} />
-          </View>
-        ) : (
-          <FlatList
-            data={orders}
-            keyExtractor={(item, index) =>
-              item.order_id?.toString() || index.toString()
-            }
-            renderItem={renderItem}
-            contentContainerStyle={[styles.scrollContent,{
-              backgroundColor: COLORS[theme].background
-            }]}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.3}
-            ListFooterComponent={renderFooter}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={[COLORS[theme].accent]}
-                tintColor={COLORS[theme].accent}
-              />
-            }
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcon
-                  name="cart-off"
-                  size={wp(15)}
-                  color={COLORS[theme].textPrimary}
-                />
-                <Text
-                  style={[
-                    poppins.regular.h7,
-                    { color: COLORS[theme].textPrimary, marginTop: wp(3) },
-                  ]}
-                >
-                  {t('No orders found') || 'No orders found.'}
-                </Text>
-              </View>
-            }
-          />
-        )}
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: COLORS[theme].background }}
+    >
+      <HeaderBar title={t('Orders History')} showBackArrow />
+      {/* Search Bar */}
+      <View style={[styles.searchContainer, {
+        backgroundColor: COLORS[theme].background
+      }]}>
+        <MaterialCommunityIcon
+          name="magnify"
+          size={wp(6)}
+          color={COLORS[theme].textPrimary}
+        />
+        <TextInput
+          placeholder={t('Search by store or order id')}
+          placeholderTextColor={COLORS[theme].textPrimary}
+          value={searchText}
+          onChangeText={setSearchText}
+          style={[
+            styles.searchInput,
+            { color: COLORS[theme].textPrimary },
+          ]}
+        />
       </View>
+
+      {loading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator
+            size="large"
+            color={COLORS[theme].accent}
+          />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredOrders}
+          keyExtractor={(item, index) =>
+            item.order_id?.toString() || index.toString()
+          }
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[COLORS[theme].accent]}
+            />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <MaterialCommunityIcon
+                name="cart-off"
+                size={wp(15)}
+                color={COLORS[theme].textPrimary}
+              />
+              <Text
+                style={[
+                  poppins.regular.h7,
+                  { color: COLORS[theme].textPrimary, marginTop: wp(3) },
+                ]}
+              >
+                {t('No orders found')}
+              </Text>
+            </View>
+          }
+        />
+      )}
     </GestureHandlerRootView>
   );
 };
 
 const styles = StyleSheet.create({
   scrollContent: {
-    paddingVertical: hp(0),
     paddingBottom: hp(5),
     marginHorizontal: wp(3),
   },
@@ -265,21 +282,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderRadius: wp(3),
     elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
     padding: wp(3),
     marginBottom: wp(3),
-  },
-  logoContainer: {
-    marginRight: wp(3),
-    justifyContent: 'center',
   },
   logo: {
     width: wp(14),
     height: wp(14),
     borderRadius: wp(2),
+    marginRight: wp(3),
   },
   rowBetween: {
     flexDirection: 'row',
@@ -297,14 +307,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  footerLoader: {
-    paddingVertical: hp(2),
-    alignItems: 'center',
-  },
   emptyContainer: {
     padding: wp(5),
     alignItems: 'center',
-    justifyContent: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: wp(3),
+    paddingHorizontal: wp(3),
+    borderRadius: wp(3),
+    marginBottom: wp(1),borderWidth:wp(0.3),borderColor:"#CCC"
+
+  },
+  searchInput: {
+    flex: 1,
+    height: hp(5),
+    marginLeft: wp(2),
+    fontSize: wp(3.5),
   },
 });
 

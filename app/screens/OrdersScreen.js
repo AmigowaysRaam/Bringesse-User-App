@@ -3,6 +3,7 @@ import {
   PanResponder,
   View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
   ToastAndroid,
+  BackHandler,
 } from 'react-native';
 import {
   GestureHandlerRootView,
@@ -23,6 +24,7 @@ import { fetchData } from '../api/api';
 import { poppins } from '../resources/fonts';
 import ConfirmModalBookings from './ConfirmModalBookings';
 import BookingsList from './BookingsList';
+import SelectVehicleModal from '../components/header/SelectVehicleModal';
 const OrdersScreen = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -52,13 +54,23 @@ const OrdersScreen = () => {
     vehicleCategoryId: null, // Store the vehicleCategory ID
   });
   const [vehicleCategoryArr, setVehcileCatgory] = useState([]);
-
   const routes = [
     { key: 'book', title: 'Book' },
     { key: 'history', title: 'History' },
   ];
-
-
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // block back ONLY on this screen
+        return true;
+      };
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+      return () => subscription.remove();
+    }, [])
+  );
   const renderLabel = (label, isRequired = false) => (
     <Text style={[styles.label, { color: COLORS[theme].textPrimary }]}>
       {label}
@@ -123,16 +135,20 @@ const OrdersScreen = () => {
     setLoading(true);
     try {
       const data = await fetchData('getvehiclecategories', 'GET', null, null);
-      // ToastAndroid.show(data?.data?.message, ToastAndroid.SHORT);
-      // Alert.alert('Vehicle Categories', JSON.stringify(data?.data));
       setVehcileCatgory(
         data?.data?.result?.map(category => ({
           label: category.name,
           value: category._id,
+          image: category.image,
           vehicles: category?.vehicles,
           enableDropLocation: category?.enableDropLocation ?? true,
         })) || []
       );
+      // console.log('Vehicle Categories', JSON.stringify(
+      //   data?.data?.result?.map(category => ({
+      //     label: category.name,
+      //   }))
+      // ));
     } catch (error) {
       console.error('Error fetching home page data:', error);
       // ToastAndroid.show(data?.data?.message, ToastAndroid.SHORT);
@@ -171,6 +187,10 @@ const OrdersScreen = () => {
       if (data?.available_drivers) {
         setDriverInfo(data);
         setConfirmModal(data?.available_drivers);
+        showMessage({
+          message: data.message,
+          type: 'info',
+        });
       } else {
         showMessage({
           message: data.message,
@@ -199,8 +219,8 @@ const OrdersScreen = () => {
           { borderColor: error ? 'red' : COLORS[theme].textPrimary, flexDirection: "row", justifyContent: "space-between" },
         ]}>
           <Text style={[poppins.regular.h7,
-            styles.dropdownText,
-            { color: value ? COLORS[theme].textPrimary : COLORS[theme].textPrimary,lineHeight:hp(3) },
+          styles.dropdownText,
+          { color: value ? COLORS[theme].textPrimary : COLORS[theme].textPrimary, lineHeight: hp(3) },
           ]}>
             {value || `Select ${label}`}
           </Text>
@@ -219,18 +239,6 @@ const OrdersScreen = () => {
   const navigation = useNavigation();
   //enableDropLocation
   const handleBookNow = async () => {
-    // let payLoad = {
-    //   user_id: profile?.user_id,
-    //   vehicle_id: formValues?.vehicleTypeId,
-    //   category_id: formValues?.vehicleCategoryId,
-    //   category_name: formValues?.vehicleCategory,
-    //   pickup_location: formValues?.pickupLocation?.location,
-    //   pickup_lat: formValues?.pickupLocation?.lat,
-    //   pickup_lon: formValues?.pickupLocation?.lon,
-    //   drop_location: formValues?.dropLocation?.location,
-    //   drop_lat: formValues?.dropLocation?.lat,
-    //   drop_lon: formValues?.dropLocation?.lon,
-    // }
     let payLoad = {
       user_id: profile?.user_id,
       vehicle_id: formValues?.vehicleTypeId,
@@ -239,14 +247,14 @@ const OrdersScreen = () => {
       pickup_location: formValues?.pickupLocation?.location,
       pickup_lat: formValues?.pickupLocation?.lat,
       pickup_lon: formValues?.pickupLocation?.lon,
-    
+
       // ✅ If drop location is missing, use pickup location instead
       drop_location: formValues?.dropLocation?.location || formValues?.pickupLocation?.location,
       drop_lat: formValues?.dropLocation?.lat || formValues?.pickupLocation?.lat,
       drop_lon: formValues?.dropLocation?.lon || formValues?.pickupLocation?.lon,
       enableDropLocation: enableDropLocation,
     };
-    
+
     setLoading(true);  // Show loader when fetching data
     try {
       const data = await fetchData('booktransport', 'POST', payLoad,
@@ -310,11 +318,14 @@ const OrdersScreen = () => {
     })
   ).current;
 
+
+
   return (
-    <GestureHandlerRootView style={{ flex: 1, padding: wp(1),opacity:modalVisible? 0.2:1  }}
+    <GestureHandlerRootView style={{ flex: 1, padding: wp(1), opacity: modalVisible ? 0.1 : 1 }}
       {...(!locationmodalVisible && !otherModal ? panResponder.panHandlers : {})}
     >
-      <HeaderBar title={t('Pickup/drop') || 'Orders'} showBackButton={false}  />
+      <FlashMessage />
+      <HeaderBar title={t('Pickup/drop') || 'Orders'} showBackButton={false} />
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         {routes.map(route => (
@@ -351,12 +362,15 @@ const OrdersScreen = () => {
               <>
                 <View style={{ marginHorizontal: hp(1), }}>
                   <View style={styles.section}>
-                    {renderDropdownField(
-                      'Vehicle Category',
-                      formValues.vehicleCategory,
-                      () => openModal('vehicleCategory', 'Select Vehicle Category', vehicleCategoryArr),
-                      errors?.vehicleCategory
-                    )}
+                    {loading ?
+                      <ActivityIndicator />
+                      :
+                      renderDropdownField(
+                        'Vehicle Category',
+                        formValues.vehicleCategory,
+                        () => openModal('vehicleCategory', 'Select Vehicle Category', vehicleCategoryArr),
+                        errors?.vehicleCategory
+                      )}
                     {renderDropdownField(
                       'Vehicle Type',
                       formValues.vehicleType,
@@ -432,16 +446,27 @@ const OrdersScreen = () => {
           onModalToggle={(visible) => setotherModalVisible(visible)}
         />
       }
-      {/* Modals */}
-      <SelectionModal
-        visible={modalVisible}
-        data={modalData}
-        title={modalTitle}
-        onSelect={handleModalSelect}
-        onDismiss={() => setModalVisible(false)}
-        multiSelect={modalType === 'serviceType'}
-        selectedValues={modalType === 'serviceType' ? formValues.vehicleType : []}
-      />
+      {modalTitle !== 'Select Vehicle Category' &&
+        <SelectionModal
+          visible={modalVisible}
+          data={modalData}
+          title={modalTitle}
+          onSelect={handleModalSelect}
+          onDismiss={() => setModalVisible(false)}
+          multiSelect={modalType === 'serviceType'}
+          selectedValues={modalType === 'serviceType' ? formValues.vehicleType : []}
+        />
+      }
+      {modalTitle == 'Select Vehicle Category' &&
+        <SelectVehicleModal
+          visible={modalVisible}
+          data={modalData}
+          title={modalTitle}
+          onSelect={handleModalSelect}
+          onDismiss={() => setModalVisible(false)}
+          multiSelect={modalType === 'serviceType'}
+          selectedValues={modalType === 'serviceType' ? formValues.vehicleType : []}
+        />}
       <SelectLocation
         type={locaTYpe}
         visible={locationmodalVisible}
@@ -464,7 +489,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   }, dropdownText: {
     fontSize: wp(3.8),
-    width: wp(75),
+    width: wp(75), textTransform: "capitalize"
   },
   errorText: {
     color: 'red', fontSize: wp(3), marginTop: hp(0.5),

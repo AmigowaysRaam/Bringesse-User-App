@@ -4765,6 +4765,7 @@ __metadata:
     react-native-toast-message: ^2.2.1
     react-native-vector-icons: ^10.1.0
     react-native-version-check: ^3.4.7
+    react-native-video: ^6.18.0
     react-native-vision-camera: ^4.7.2
     react-native-webview: ^13.13.2
     react-redux: ^9.1.2
@@ -11050,6 +11051,16 @@ __metadata:
   peerDependencies:
     react-native: ">=0.48.0"
   checksum: 34aecfd90413c8fe2021718a6b1ef0bc71ee312261de91c4d7a63b29dfdc3be1fa44d98d57e0fe70023c1c512c7cc856f01de23b95c8b8554477989b4e1fa51b
+  languageName: node
+  linkType: hard
+
+"react-native-video@npm:^6.18.0":
+  version: 6.18.0
+  resolution: "react-native-video@npm:6.18.0"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 53c8cd6878a3a944dde7662e532d440bc2c92a3673deeac5aa2dae6e344aacda5f3e30702a3cc1688af309e9e84ed7227dfb6908d57fbec270b998ce2c685521
   languageName: node
   linkType: hard
 

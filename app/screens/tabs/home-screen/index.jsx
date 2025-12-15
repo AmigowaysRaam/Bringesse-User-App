@@ -25,28 +25,24 @@ import VersionUpgradeModal from '../../VersionUpgradeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { poppins } from '../../../resources/fonts';
 import { wp } from '../../../resources/dimensions';
+import CheckUserName from '../../CheckUserName';
+import AnimatedCartCount from '../../AnimatedCartCount';// Import the AnimatedCartCount component
 
 const HomeScreen = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
-
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [homePageData, setHomePageData] = useState(null);
-
   // 🔥 NEW: Toggle State
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
-
   const profile = useSelector(state => state.Auth.profile);
   const accessToken = useSelector(state => state.Auth.accessToken);
   const profileDetails = useSelector(state => state.Auth.profileDetails);
-
   const navigation = useNavigation();
   const dispatch = useDispatch();
-
   //------------------ GET PERMISSION ------------------
-
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') return true;
 
@@ -58,24 +54,19 @@ const HomeScreen = () => {
           message: 'App needs access to your location.',
         }
       );
-
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (err) {
       console.warn('Permission error:', err);
       return false;
     }
   };
-
   //------------------ GET ADDRESS ------------------
-
   const getAddressFromCoords = async (lat, lon) => {
     try {
       const response = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=AIzaSyD3aWLyn9qHavlshIy49b1Pi9jjKjIPMnc`
       );
-
       const data = await response.json();
-
       if (data.status === "OK") {
         setAddress(data.results[0].formatted_address);
       } else {
@@ -86,13 +77,10 @@ const HomeScreen = () => {
       setAddress("Failed to fetch address");
     }
   };
-
   //------------------ GET CURRENT LOCATION ------------------
-
   const getLocation = async () => {
     const hasPermission = await requestLocationPermission();
     if (!hasPermission) return null;
-
     return new Promise((resolve, reject) => {
       Geolocation.getCurrentPosition(
         pos => {
@@ -105,13 +93,19 @@ const HomeScreen = () => {
           Alert.alert("Location Error", err.message);
           reject(err);
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+        {
+          enableHighAccuracy: false,
+          timeout: 20000,
+          maximumAge: 10000,
+          forceRequestLocation: true,
+          showLocationDialog: true,
+        },
       );
     });
   };
+  const [cartCount, setCartCount] = useState(0); // Track the cart count
 
   //------------------ FETCH PROFILE ------------------
-
   const fetchProfileData = async () => {
     if (!accessToken || !profile?.user_id) return;
 
@@ -121,15 +115,12 @@ const HomeScreen = () => {
         user_id: profile.user_id,
         type: "user",
       });
-
       dispatch({ type: "PROFILE_DETAILS", payload: data });
     } catch (e) {
       console.log("Profile error:", e);
     }
   };
-
   //------------------ HOME API ------------------
-
   const getHomePageData = async (lat, lon) => {
     if (!accessToken || !profile?.user_id) return;
     try {
@@ -152,16 +143,13 @@ const HomeScreen = () => {
       setLoading(false);
     }
   };
-
   //------------------ RUN WHEN SCREEN FOCUSES ------------------
-
   useFocusEffect(
     useCallback(() => {
       fetchProfileData();
     }, [])
   );
   //------------------ MAIN LOCATION LOADER ------------------
-
   useEffect(() => {
     const loadData = async () => {
       if (!profileDetails) return;
@@ -182,19 +170,14 @@ const HomeScreen = () => {
       }
       setRefreshing(false);
     };
-
     loadData();
   }, [profileDetails, useCurrentLocation]);
-
   //------------------ ON REFRESH ------------------
-
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchProfileData();
-
     const primary = profileDetails?.primary_address;
     const hasPrimary = primary?.lat && primary?.lon;
-
     if (!useCurrentLocation && hasPrimary) {
       await getAddressFromCoords(primary.lat, primary.lon);
       await getHomePageData(primary.lat, primary.lon);
@@ -213,7 +196,7 @@ const HomeScreen = () => {
       <Text style={[poppins.regular.h8, {
         color: COLORS[theme].primary
       }]}>Get Store from Current Location</Text>
-      <View style={{ width: wp(15.5), height: wp(8.5),borderWidth:wp(0.4), borderColor: "#ccc", alignItems: "center", borderRadius: wp(4) }}>
+      <View style={{ width: wp(15.5), height: wp(8.5), borderWidth: wp(0.4), borderColor: "#ccc", alignItems: "center", borderRadius: wp(4) }}>
         <Switch
           value={useCurrentLocation}
           onValueChange={setUseCurrentLocation}
@@ -233,14 +216,14 @@ const HomeScreen = () => {
     <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
       <UserToggleStatus address={address} loading={loading} />
       <VersionUpgradeModal />
-      {/* 🔥 ADD OUR TOGGLE */}
+      <CheckUserName /> 
       <LocationToggle />
       {loading ? (
         <LoaderContainer />
       ) : (
         <FlatList
           data={[1]}
-          keyExtractor={() => "1"}
+          keyExtractor={() => "123456"}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -258,7 +241,6 @@ const HomeScreen = () => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   toggleRow: {
@@ -268,5 +250,4 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignSelf: "center", alignItems: "center", justifyContent: "space-between"
   }
 });
-
 export default HomeScreen;
