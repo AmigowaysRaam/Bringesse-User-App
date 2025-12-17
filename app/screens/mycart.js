@@ -484,6 +484,33 @@ export default function CartList({ route }) {
   const renderItem = ({ item }) => (
     <Pressable
       onPress={() => setselProdtedData(item)} style={styles.itemRow}>
+      {item?.offer && item?.originalPrice && item?.totalAmount && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: wp(2),
+            left: wp(2.5),
+            backgroundColor: '#90EE90', // light green
+            paddingHorizontal: wp(1),
+            paddingVertical: wp(0.5),
+            zIndex: 999,
+            borderRadius: wp(1),
+          }}
+        >
+          <Text
+            style={{
+              color: COLORS[theme].black,
+              fontSize: wp(2.5),
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+            }}
+          >
+            {Math.round(((item.originalPrice - item.totalAmount) / item.originalPrice) * 100)}% Off
+          </Text>
+        </View>
+      )}
+
+
       <Image source={{ uri: item.image }} style={styles.image} />
       <View style={{ flex: 1 }}>
         {/* <Text style={{color:'#000'}}>{JSON.stringify(item,null,2)}</Text> */}
@@ -495,6 +522,13 @@ export default function CartList({ route }) {
           {item.offer && (
             <Text style={styles.strikePrice}>₹{item.originalPrice}</Text>
           )}
+          {/* {item.offer && item.originalPrice && item.totalAmount && (
+            <Text  style={[poppins.regular.h9, styles.iemTitle, {
+              color: COLORS[theme].black, maxWidth: wp(48), textTransform: "capitalize"
+            }]}>
+              {Math.round(((item.originalPrice - item.totalAmount) / item.originalPrice) * 100)}% OFF
+            </Text>
+          )} */}
         </View>
       </View>
       <View style={styles.qtyBox}>

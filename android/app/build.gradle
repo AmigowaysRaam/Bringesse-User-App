@@ -33,8 +33,8 @@ android {
         applicationId "com.app.bringessedeliveryuserapp"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 43
-        versionName '1.3.5'
+        versionCode 45
+        versionName '1.3.7'
     }
     // Signing configuration (using debug keystore for both)
     signingConfigs {

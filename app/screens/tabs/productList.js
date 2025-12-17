@@ -347,7 +347,6 @@ const ProductListScreen = ({ route }) => {
         addCart={(productData, variant, index) => addToCart(productData, variant, index)}
         close={() => setselProdtedData(null)}
       />
-
       {/* CART BOTTOM BAR */}
       {Object.keys(cartItems).length > 0 && (
         <View style={styles.bottomBar}>
@@ -490,7 +489,7 @@ const styles = StyleSheet.create({
 
   bottomBar: {
     position: "absolute",
-    bottom: hp(2),
+    bottom: hp(1),
     left: wp(2),
     right: wp(2),
     backgroundColor: "#009a44",

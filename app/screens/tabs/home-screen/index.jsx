@@ -27,7 +27,6 @@ import { poppins } from '../../../resources/fonts';
 import { wp } from '../../../resources/dimensions';
 import CheckUserName from '../../CheckUserName';
 import AnimatedCartCount from '../../AnimatedCartCount';// Import the AnimatedCartCount component
-
 const HomeScreen = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();

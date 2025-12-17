@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Image, ScrollView } from 'react-native';
+import { View, StyleSheet, Image, ScrollView, TouchableOpacity, Linking } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../resources/colors';
 import { hp, wp } from '../resources/dimensions';
+import { Link } from '@react-navigation/native';
+import { Text } from 'react-native-paper';
 const CarouselData = ({ banner }) => {
-    
+
     const { theme } = useTheme();
     const scrollViewRef = useRef(null);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -18,6 +20,9 @@ const CarouselData = ({ banner }) => {
         }, 2000);
         return () => clearInterval(intervalId); // Cleanup on unmount
     }, [banner?.admin_banner.length]);
+    const handleNav = (url) => {
+        Linking.openURL(url);
+    }
     return (
         <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
             <ScrollView
@@ -30,12 +35,13 @@ const CarouselData = ({ banner }) => {
                 onScrollEndDrag={() => clearInterval(currentIndex)}
             >
                 {banner?.admin_banner.map((item, index) => (
-                    <View key={item.id} style={styles.card}>
+                    <TouchableOpacity onPress={() => handleNav(item?.site_url)} key={item.id} style={styles.card}>
                         <Image
                             source={{ uri: item.image_url }}
                             style={styles.profileImage}
                         />
-                    </View>
+                        {/* <Text style={{color:"green"}}>{item?.site_url}</Text> */}
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
         </View>
