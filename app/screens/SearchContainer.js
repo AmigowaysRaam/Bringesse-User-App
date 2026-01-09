@@ -15,12 +15,11 @@ const SearchContainer = ({ banner }) => {
   const navigation = useNavigation();
 
   useEffect(() => {
-    // Recursive function with setTimeout to handle cycling of categories
     const cycleCategories = (index) => {
       const nextIndex = (index + 1) % (banner?.category?.length || 1); // Cycle through categories
       setCurrentIndex(nextIndex);
       // Set a new timeout for the next category
-      setTimeout(() => cycleCategories(nextIndex), 1500);
+      setTimeout(() => cycleCategories(nextIndex), 2500);
     };
 
     if (Array.isArray(banner?.category) && banner?.category?.length > 0) {
@@ -79,5 +78,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
 export default SearchContainer;

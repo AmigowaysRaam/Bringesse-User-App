@@ -87,6 +87,7 @@ const UserConfirmPayment = ({ showModal, onClose, grandTotal, onPaymentConfirm, 
       <TouchableWithoutFeedback onPress={handleCloseModal}>
         <Animated.View style={[styles.modalOverlay, { opacity: opacityAnim }]} />
       </TouchableWithoutFeedback>
+
       <Animated.View
         style={[
           styles.modalContainer,
@@ -98,6 +99,7 @@ const UserConfirmPayment = ({ showModal, onClose, grandTotal, onPaymentConfirm, 
           },
         ]}
       >
+        {/* <Text>{JSON.stringify(paymentOptions)}</Text> */}
         <Text style={[poppins.regular.h7, { color: COLORS[theme].textPrimary, marginBottom: wp(4) }]}>
           {t("Choose Payment Method")}
         </Text>
@@ -161,7 +163,6 @@ const UserConfirmPayment = ({ showModal, onClose, grandTotal, onPaymentConfirm, 
               Rs. {grandTotal}
             </Text>
           </View>
-
           <View
             style={[
               styles.verticalDivider,

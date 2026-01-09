@@ -28,7 +28,7 @@ const ConfirmModalBookings = ({ formValues, confirmModal, onEdit, onBookNow, dri
     return (
         <View style={[styles.card, { backgroundColor: COLORS[theme].background, borderColor: COLORS[theme].accent }]}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: wp(4), borderBottomWidth: wp(0.5), borderColor: "#ccc", paddingVertical: wp(1) }}>
-                <Text style={[poppins.semi_bold.h5, { color: COLORS[theme].primary, textTransform: "capitalize", }]}>
+                <Text style={[poppins.semi_bold.h6, { color: COLORS[theme].primary, textTransform: "capitalize", }]}>
                     {t('Booking Summary')}
                 </Text>
                 <TouchableOpacity onPress={() => onEdit('vehicleCategory')} activeOpacity={0.7}>
@@ -38,16 +38,11 @@ const ConfirmModalBookings = ({ formValues, confirmModal, onEdit, onBookNow, dri
             {/* User Info Section */}
             <View style={styles.userInfo}>
                 <View style={styles.userTextContainer}>
-                    <Text style={[poppins.semi_bold.h5, { color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
+                    <Text style={[poppins.semi_bold.h7, { color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
                         {profileDetails?.full_name || 'User Name'}
                     </Text>
-                    {/* <Text style={[poppins.regular.h6, { color: COLORS[theme].white }]}>
-                        {profileDetails?.email || ''}
-                    </Text> */}
                 </View>
             </View>
-
-            {/* Booking Details Section */}
             <ScrollView style={styles.bookingDetails}>
                 {/* Vehicle Category */}
                 <View style={styles.detailRow}>
@@ -61,7 +56,6 @@ const ConfirmModalBookings = ({ formValues, confirmModal, onEdit, onBookNow, dri
 
                     </View>
                 </View>
-
                 {/* Vehicle Type */}
                 <View style={styles.detailRow}>
                     <Text style={[styles.label, { color: COLORS[theme].textPrimary }]}>
@@ -101,9 +95,21 @@ const ConfirmModalBookings = ({ formValues, confirmModal, onEdit, onBookNow, dri
                         </Text>
                     </View>
                 </View>
-                <Text style={[poppins.semi_bold.h7, { color: COLORS[theme].accent,textTransform:"capitalize", alignSelf: "center", lineHeight: wp(6) }]}>
+                {/* <View style={styles.detailRow}>
+                    <Text style={[styles.label, { color: COLORS[theme].textPrimary }]}>
+                        {t('Price')}
+                    </Text>
+                    <View style={styles.valueContainer}>
+                        <Text style={[styles.value, { color: COLORS[theme].textPrimary }]}>
+                            {driverInfo?.deliveryCharge}
+                        </Text>
+
+                    </View>
+                </View> */}
+                <Text style={[poppins.semi_bold.h8, { color: COLORS[theme].accent, textTransform: "capitalize", alignSelf: "center", lineHeight: wp(6) }]}>
                     {driverInfo?.message}
                 </Text>
+
             </ScrollView>
             {/* Book Now Button */}
             <TouchableOpacity onPress={() => onEdit('vehicleCategory')} style={[styles.bookNowButton, { borderColor: COLORS[theme].textPrimary, borderWidth: wp(0.5) }]} activeOpacity={0.7}>
@@ -111,11 +117,49 @@ const ConfirmModalBookings = ({ formValues, confirmModal, onEdit, onBookNow, dri
                     {t('Close')}
                 </Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.bookNowButton, { backgroundColor: COLORS[theme].accent }]} onPress={onBookNow} activeOpacity={0.7}>
-                <Text style={[styles.bookNowText, { color: COLORS[theme].white }]}>
+            <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={onBookNow}
+                style={{
+                    backgroundColor: COLORS[theme].accent,
+                    paddingVertical: wp(3),
+                    paddingHorizontal: 25,
+                    borderRadius: wp(2),
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexDirection: 'row',
+                    elevation: 5, // shadow for Android
+                    shadowColor: '#000', // shadow for iOS
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                    marginVertical: 10,
+                }}
+            >
+                <Text
+                    style={[poppins.semi_bold.h6, {
+                        color: COLORS[theme].white,
+                        // fontSize: 16,
+                        // fontFamily: poppins.medium,
+                    }]}
+                >
                     {t('Book Now')}
                 </Text>
+                {driverInfo?.deliveryCharge && (
+                    <Text
+                        style={[poppins.semi_bold.h6, {
+                            color: COLORS[theme].accent,
+                            // fontSize: 16,
+                            // fontFamily: poppins.medium,
+                            fontWeight: '600', lineHeight: hp(4),
+                            backgroundColor: COLORS[theme].white, paddingHorizontal: wp(5), borderRadius: wp(2)
+                        }]}
+                    >
+                        {driverInfo?.deliveryCharge}
+                    </Text>
+                )}
             </TouchableOpacity>
+
         </View>
     );
 };
@@ -127,60 +171,42 @@ const styles = StyleSheet.create({
         marginVertical: hp(2),
         borderWidth: wp(0.5),
         borderRadius: 5,
-        width: wp(98), height: hp(68)
+        width: wp(98), height: hp(68), 
+        // position: "relative", top: hp(5), zIndex: 9999
     },
     userInfo: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: hp(2),
-    },
-    profileImage: {
-        width: wp(14),
-        height: wp(14),
-        borderRadius: wp(7),
+        alignItems: 'center', marginBottom: hp(2),
+    }, profileImage: {
+        width: wp(14), height: wp(14), borderRadius: wp(7),
         marginRight: wp(3),
-    },
-    userTextContainer: {
+    }, userTextContainer: {
         justifyContent: 'center',
-    },
-    bookingDetails: {
+    }, bookingDetails: {
         marginTop: hp(1),
     },
     detailRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: 'row', justifyContent: 'space-between',
         marginBottom: hp(2),
-    },
-    lcoadetailRow: {
+    }, lcoadetailRow: {
         flexDirection: 'column',
         justifyContent: 'space-between',
-        marginBottom: hp(2),
-    },
-    label: {
-        fontSize: wp(4),
-        fontWeight: '500',
+        marginBottom: hp(1),
+    }, label: {
+        fontSize: wp(3.5), fontWeight: '500'
     },
     valueContainer: {
+        flexDirection: 'row', alignItems: 'center',
+    }, value: {
+        fontSize: wp(3.5), fontWeight: '800',
+    }, infoRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-    },
-
-    value: {
-        fontSize: wp(4),
-        fontWeight: '400',
-    },
-    infoRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: hp(2),
-    },
-    bookNowButton: {
+        justifyContent: 'space-between', marginTop: hp(2),
+    }, bookNowButton: {
         paddingVertical: wp(3),
-        marginVertical: hp(1),
-        borderRadius: wp(1),
+        marginVertical: hp(1), borderRadius: wp(1),
         alignItems: 'center',
-    },
-    bookNowText: {
+    }, bookNowText: {
         fontSize: wp(4.5),
         fontWeight: '600',
     },

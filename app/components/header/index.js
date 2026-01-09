@@ -1,9 +1,5 @@
 import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Animated,
+  StyleSheet, Text, TouchableOpacity, View, Animated,
 } from 'react-native';
 import React, { useEffect, useRef } from 'react';
 import { hp, wp } from '../../resources/dimensions';
@@ -15,15 +11,10 @@ import { commonStyles } from '../../resources/styles';
 import { useTheme } from '../../context/ThemeContext';
 
 const HeaderBar = ({
-  showBackArrow = false,
-  title = '',
-  subMenu = '',
-  showRightArrow = '',
-  onRightArrowPress = () => {},
-}) => {
-  const navigation = useNavigation();
+  showBackArrow = false, title = '', subMenu = '', showRightArrow = '',
+  onRightArrowPress = () => { }, }) => {
+    const navigation = useNavigation();
   const { theme } = useTheme();
-
   // 🔹 Animation value
   const slideAnim = useRef(new Animated.Value(-hp(10))).current;
 
@@ -36,13 +27,13 @@ const HeaderBar = ({
           useNativeDriver: true,
         }).start();
       }, 800); // ⏱ 1 second delay
-  
+
       return () => clearTimeout(timer);
     } else {
       slideAnim.setValue(0); // No animation
     }
   }, [showRightArrow]);
-  
+
   return (
     <Animated.View
       style={[
@@ -81,11 +72,12 @@ const HeaderBar = ({
           <Text
             numberOfLines={1}
             style={[
-              poppins.semi_bold.h5,
+              poppins.semi_bold.h6,
               {
                 color: COLORS[theme].textPrimary,
                 textTransform: 'capitalize',
                 lineHeight: hp(2.5),
+                fontSize: wp(4.5)
               },
             ]}
           >

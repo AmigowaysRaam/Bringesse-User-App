@@ -1,83 +1,192 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-    View, Text, Modal, TouchableOpacity,
-    FlatList, Image, StyleSheet,
+    View,
+    Text,
+    Modal,
+    TouchableOpacity,
+    FlatList,
+    Image,
+    StyleSheet,
 } from 'react-native';
 import { hp, wp } from '../resources/dimensions';
 import { COLORS } from '../resources/colors';
 import { poppins } from '../resources/fonts';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-const ProductVariantSelector = ({ visible, product, onClose, onSelect, theme }) => {
+
+const ProductVariantSelector = ({
+    visible,
+    product,
+    onClose,
+    onSelect,
+    theme,
+}) => {
     const [selectedVariant, setSelectedVariant] = useState(null);
-    const handleSelect = (variant) => {
-        setSelectedVariant(variant);
-    };
+
+    useEffect(() => {
+        if (!visible) setSelectedVariant(null);
+    }, [visible]);
+
     const handleConfirm = () => {
-        if (selectedVariant) {
-            onSelect({ ...product, selectedVariant, quantity: 1 }); // Default quantity 1
-            onClose();
-        } else {
+        if (!selectedVariant) {
             alert('Please select a variant');
+            return;
         }
+        onSelect({ ...product, selectedVariant, quantity: 1 });
+        onClose();
     };
+    const renderVariant = ({ item }) => {
+        const isSelected = selectedVariant?.name === item.name;
+        const isOut = item?.['itemOutofStock '] === '1';
+        return (
+            <TouchableOpacity
+                disabled={isOut}
+                onPress={() => setSelectedVariant(item)}
+                style={[
+                    styles.variantCard,
+                    {
+                        backgroundColor: isSelected
+                            ? COLORS[theme].background
+                            : COLORS[theme].background,
+                        borderColor: isSelected
+                            ? COLORS[theme].accent
+                            : '#ccc',
+                        opacity: isOut ? 0.5 : 1,
+                    },
+                ]}
+            >
+                {/* Variant Name */}
+                <Text
+                    style={[
+                        poppins.semi_bold.h8,
+                        { color: COLORS[theme].textPrimary },
+                    ]}
+                >
+                    {item.name} {item.unit}
+                </Text>
+
+                {/* Price Row */}
+                <View style={styles.priceRow}>
+                    {item.offer_available === 'true' ? (
+                        <>
+                            <Text style={styles.strikePrice}>₹{item.price}</Text>
+                            <Text style={styles.offerPrice}>
+                                ₹{item.offer_price}
+                            </Text>
+                        </>
+                    ) : (
+                        <Text style={styles.offerPrice}>₹{item.price}</Text>
+                    )}
+                </View>
+
+                {/* Warranty */}
+                {item?.itemWarranty && (
+                    <View style={styles.warrantyBadge}>
+                        <MaterialCommunityIcons
+                            name="shield-check"
+                            size={wp(3.5)}
+                            color={COLORS[theme].accent}
+                        />
+                        <Text style={styles.warrantyText}>
+                            {item.itemWarranty}
+                        </Text>
+                    </View>
+                )}
+
+                {/* Out of stock */}
+                {isOut && (
+                    <Text style={styles.outOfStockText}>Out of Stock</Text>
+                )}
+            </TouchableOpacity>
+        );
+    };
+
     return (
         <Modal visible={visible} transparent animationType="fade">
-            <View style={styles.modalOverlay}>
-                <View style={[styles.modalContainer, { backgroundColor: COLORS[theme].cardBackground }]}>
-                    {/* Close Button */}
-                    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-                        <MaterialCommunityIcons name="close" size={wp(5)} color={COLORS[theme].textPrimary} />
+            <View style={styles.overlay}>
+                <View
+                    style={[
+                        styles.container,
+                        { backgroundColor: COLORS[theme].background },
+                    ]}
+                >
+                    {/* Close */}
+                    <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                        <MaterialCommunityIcons
+                            name="close"
+                            size={wp(5)}
+                            color={COLORS[theme].textPrimary}
+                        />
                     </TouchableOpacity>
-                    <Text style={[poppins.semi_bold.h7, { color: COLORS[theme].textPrimary, textAlign: 'center', textTransform: "capitalize" }]}>
+
+                    {/* Title */}
+                    <Text
+                        style={[
+                            poppins.semi_bold.h7,
+                            styles.title,
+                            { color: COLORS[theme].textPrimary },
+                        ]}
+                    >
                         {product?.name}
                     </Text>
-                    <Text numberOfLines={4} style={[poppins.regular.h9, { color: COLORS[theme].textPrimary, marginBottom: hp(2), textTransform: "capitalize" }]}>
-                        {product?.description}
-                    </Text>
-                    <Image
-                        source={{ uri: product.image_url }}
-                        style={styles.productImage}
-                        resizeMode="contain"
-                    />
 
-                    <Text style={[poppins.semi_bold.h8, { marginVertical: hp(1.5), color: COLORS[theme].textPrimary }]}>
+                    {/* Image */}
+                    {/* <Image
+            source={{ uri: product?.image_url }}
+            style={styles.image}
+            resizeMode="contain"
+          /> */}
+
+                    {/* Variants */}
+                    <Text
+                        style={[
+                            poppins.semi_bold.h8,
+                            { color: COLORS[theme].textPrimary, marginVertical: hp(1) },
+                        ]}
+                    >
                         Select Variant
                     </Text>
 
                     <FlatList
-                        data={product.variant_list || []}
-                        keyExtractor={(item, index) => index.toString()}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={[
-                                    styles.variantItem,
-                                    { backgroundColor: selectedVariant?.name === item.name ? COLORS[theme].background : COLORS[theme].cardBackground },
-                                    selectedVariant?.name === item.name
-                                        ? { borderColor: COLORS[theme].accent, borderWidth: 2 }
-                                        : { borderColor: '#ccc', borderWidth: 1 },
-                                ]}
-                                onPress={() => handleSelect(item)}
-                            >
-                                <View>
-                                    <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary }]}>
-                                        {item.name} {item.unit} - ${item.price.toFixed(2)}
-                                    </Text>
-                                    {item.offer_available === "true" && (
-                                        <Text style={{ color: 'green', fontSize: wp(3), marginTop: hp(0.5) }}>
-                                            Offer: ${item.offer_price.toFixed(2)}
-                                        </Text>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                        )}
-                        contentContainerStyle={{ paddingVertical: hp(1) }}
+                        data={product?.variant_list || []}
+                        keyExtractor={(_, i) => i.toString()}
+                        renderItem={renderVariant}
+                        showsVerticalScrollIndicator={false}
                     />
-                    <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={[styles.actionButton, { borderColor: '#ccc', backgroundColor: COLORS[theme].background }]} onPress={onClose}>
-                            <Text style={[poppins.semi_bold.h8, { color: COLORS[theme].textPrimary }]}>Cancel</Text>
+
+                    {/* Actions */}
+                    <View style={styles.actions}>
+                        <TouchableOpacity
+                            onPress={onClose}
+                            style={[
+                                styles.btn,
+                                { backgroundColor: COLORS[theme].background, borderWidth: wp(0.5), borderColor: "#CCC" },
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    poppins.semi_bold.h8,
+                                    { color: COLORS[theme].textPrimary },
+                                ]}
+                            >
+                                Cancel
+                            </Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.actionButton, { backgroundColor: COLORS[theme].accent }]} onPress={handleConfirm}>
-                            <Text style={[poppins.semi_bold.h8, { color: '#fff' }]}>Add to Cart</Text>
+
+                        <TouchableOpacity
+                            onPress={handleConfirm}
+                            style={[
+                                styles.btn,
+                                { backgroundColor: COLORS[theme].accent },
+                            ]}
+                        >
+                            <Text
+                                style={[
+                                    poppins.semi_bold.h8,
+                                    { color: '#fff' },
+                                ]}
+                            >
+                                Add to Cart
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -85,37 +194,93 @@ const ProductVariantSelector = ({ visible, product, onClose, onSelect, theme }) 
         </Modal>
     );
 };
+
+export default ProductVariantSelector;
+
+/* ================= STYLES ================= */
+
 const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1, backgroundColor: 'rgba(0,0,0,0.8)',
-        justifyContent: 'center', paddingHorizontal: wp(4),
+    overlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.75)',
+        justifyContent: 'center',
+        paddingHorizontal: wp(4),
     },
-    modalContainer: {
-        borderWidth: 1, borderColor:
-            '#ccc',
+    container: {
+        width: wp(95),
         borderRadius: wp(3),
-        padding: wp(4), maxHeight: hp(80),
-    }, closeButton: {
-        position: 'absolute',
-        top: wp(3), right: wp(3),
-        zIndex: 1, padding: wp(1),
-    }, productImage: {
-        width: '100%',
-        height: hp(20), borderRadius: wp(2),
-        marginBottom: hp(2), backgroundColor: '#f0f0f0',
-    }, variantItem: {
-        padding: wp(3), borderRadius: wp(2),
-        marginVertical: hp(0.5), shadowColor: '#000',
-        shadowOpacity: 0.1, shadowRadius: 5,
-        elevation: 2,
+        padding: wp(4),
+        maxHeight: hp(82),
+        position: "absolute", bottom: hp(1), left: hp(1), borderWidth: wp(0.5), borderColor: "#CCC"
     },
-    buttonContainer: {
+    closeBtn: {
+        position: 'absolute',
+        top: wp(3),
+        right: wp(3),
+        zIndex: 1,
+    },
+    title: {
+        textAlign: 'center',
+        textTransform: 'capitalize',
+        marginBottom: hp(1),
+    },
+    image: {
+        width: '100%',
+        height: hp(20),
+        borderRadius: wp(2),
+        backgroundColor: '#f2f2f2',
+        marginBottom: hp(2),
+    },
+
+    /* Variant Card */
+    variantCard: {
+        borderWidth: wp(0.6),
+        borderRadius: wp(2),
+        paddingVertical: wp(2),
+        marginBottom: hp(1),
+        elevation: 2, paddingHorizontal: wp(4)
+    },
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: hp(0.1),
+    },
+    strikePrice: {
+        color: '#999',
+        textDecorationLine: 'line-through',
+        marginRight: wp(2),
+    },
+    offerPrice: {
+        fontSize: wp(4),
+        fontWeight: '700',
+        color: '#2e7d32',
+    },
+    warrantyBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: hp(0.5),
+    },
+    warrantyText: {
+        marginLeft: wp(1),
+        fontSize: wp(3),
+        color: '#555',
+    },
+    outOfStockText: {
+        marginTop: hp(0.5),
+        color: '#ff3b30',
+        fontWeight: '600',
+    },
+
+    /* Actions */
+    actions: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginTop: hp(2),
-    }, actionButton: {
-        paddingVertical: hp(1.5), paddingHorizontal: wp(5),
-        borderRadius: wp(2), width: '48%', alignItems: 'center',
+    },
+    btn: {
+        width: '48%',
+        paddingVertical: hp(1.5),
+        borderRadius: wp(2),
+        alignItems: 'center',
     },
 });
-export default ProductVariantSelector;

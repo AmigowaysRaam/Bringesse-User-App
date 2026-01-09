@@ -18,9 +18,7 @@ import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import DeviceInfo from 'react-native-device-info';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
-
 export default function GetStartedScreen() {
-
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const {
@@ -43,7 +41,7 @@ export default function GetStartedScreen() {
         const token = await messaging().getToken();
         const id = await DeviceInfo.getUniqueId();
         setFcmToken(token);
-        console.log(token,"Fcm token")
+        console.log(token, "Fcm token")
         setDeviceId(id);
       } catch (error) {
         console.log('Error fetching device info:', error);
@@ -51,31 +49,16 @@ export default function GetStartedScreen() {
     };
     init();
   }, []);
-
-
   const inputRefs = [
     useRef(null),
     useRef(null),
     useRef(null),
     useRef(null),
   ];
-
-  // Countdown timer for resend OTP
-  useEffect(() => {
-    let interval;
-    if (otpSent && timer > 0) {
-      interval = setInterval(() => {
-        setTimer(prev => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [otpSent, timer]);
-
   const validatePhone = () => {
     const regex = /^[6-9]\d{9}$/;
     return regex.test(phone);
   };
-
   const handleGetOTP = async () => {
     if (!validatePhone()) {
       return showMessage({
@@ -214,6 +197,7 @@ export default function GetStartedScreen() {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     let interval;
     if (otpSent && timer > 0) {
@@ -256,7 +240,7 @@ export default function GetStartedScreen() {
         <>
           <View style={styles.fieldContainer}>
             <TextInput
-            maxLength={12}
+              maxLength={12}
               placeholder="Enter Mobile Number"
               mode="outlined"
               style={styles.input}
@@ -290,7 +274,7 @@ export default function GetStartedScreen() {
             </TouchableOpacity>
           </View>
           <TouchableOpacity onPress={() => handleGetOTP()} style={{ backgroundColor: COLORS[theme].accent, height: hp(5), borderRadius: wp(8), width: wp(60), marginVertical: hp(4), alignItems: "center", justifyContent: "center", alignSelf: "center" }}>
-            <Text style={[poppins.regular.h5, { color: COLORS[theme].white,lineHeight:hp(4) }]}>
+            <Text style={[poppins.regular.h5, { color: COLORS[theme].white, lineHeight: hp(4) }]}>
               Get OTP
             </Text>
           </TouchableOpacity>
@@ -334,7 +318,6 @@ export default function GetStartedScreen() {
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1, alignItems: 'center',
@@ -342,7 +325,6 @@ const styles = StyleSheet.create({
   splashLogo: {
     height: hp(30),
     width: wp(100), resizeMode: 'cover',
-    // backgroundColor:"#000"
   },
   logoCircle: {
     height: hp(12),
@@ -352,35 +334,22 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     width: wp(90), marginBottom: hp(2),
-  },
-  input: {
+  }, input: {
     backgroundColor: 'transparent', height: hp(6),
-  },
-  checkboxContainer: {
-    flexDirection: 'row',    // alignItems: 'center',    width: wp(90),
-    marginTop: hp(1),
-    // justifyContent: 'center',
+  }, checkboxContainer: {
+    flexDirection: 'row', marginTop: hp(1),
   },
   termsText: {
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  otpContainer: {
+    flex: 1, flexWrap: 'wrap',
+  }, otpContainer: {
     flexDirection: 'row', justifyContent: 'space-between',
     width: wp(70), marginBottom: hp(2),
-  },
-  otpInput: {
-    width: wp(14),
-    height: wp(14), borderWidth: wp(0.6), borderRadius: 8,
+  }, otpInput: {
+    width: wp(14), height: wp(14), borderWidth: wp(0.6), borderRadius: 8,
     textAlign: 'center', fontSize: wp(5),
-  },
-  verifyButton: {
-    paddingVertical: hp(1.5),
-    paddingHorizontal: wp(10), borderRadius: 5, alignItems: 'center',
+  }, verifyButton: {
+    paddingVertical: hp(1.5), paddingHorizontal: wp(10), borderRadius: 5, alignItems: 'center',
     justifyContent: 'center', width: wp(80),
     marginTop: hp(2),
-  },
-  buttonText: {
-    textAlign: 'center',
-  },
+  }, buttonText: { textAlign: 'center', },
 });

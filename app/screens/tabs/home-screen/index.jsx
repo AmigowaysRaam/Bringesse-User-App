@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, StyleSheet, PermissionsAndroid,
-  Platform, Alert, RefreshControl, FlatList, Switch,
+  Platform, Alert, RefreshControl, FlatList, Switch, ImageBackground,
   Text
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
@@ -13,7 +13,6 @@ import { COLORS } from '../../../resources/colors';
 import FlashMessage from 'react-native-flash-message';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
-
 import UserToggleStatus from '../../UserToggleStatus';
 import SearchContainer from '../../SearchContainer';
 import CategoryList from '../../CategoryList';
@@ -24,9 +23,10 @@ import LoaderContainer from '../../LoaderContainer';
 import VersionUpgradeModal from '../../VersionUpgradeModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { poppins } from '../../../resources/fonts';
-import { wp } from '../../../resources/dimensions';
+import { hp, wp } from '../../../resources/dimensions';
 import CheckUserName from '../../CheckUserName';
-import AnimatedCartCount from '../../AnimatedCartCount';// Import the AnimatedCartCount component
+import CheckCartItems from '../../checkCartItems';
+
 const HomeScreen = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -41,6 +41,8 @@ const HomeScreen = () => {
   const profileDetails = useSelector(state => state.Auth.profileDetails);
   const navigation = useNavigation();
   const dispatch = useDispatch();
+  const isInitialLoading = loading && !homePageData;
+
   //------------------ GET PERMISSION ------------------
   const requestLocationPermission = async () => {
     if (Platform.OS === 'ios') return true;
@@ -102,8 +104,6 @@ const HomeScreen = () => {
       );
     });
   };
-  const [cartCount, setCartCount] = useState(0); // Track the cart count
-
   //------------------ FETCH PROFILE ------------------
   const fetchProfileData = async () => {
     if (!accessToken || !profile?.user_id) return;
@@ -210,17 +210,20 @@ const HomeScreen = () => {
       </View>
     </View>
   );
-  //------------------ UI ------------------
   return (
-    <View style={[styles.container, { backgroundColor: COLORS[theme].background }]}>
+    <View
+      style={[styles.background, { backgroundColor: COLORS[theme].background }]}
+    >
       <UserToggleStatus address={address} loading={loading} />
       <VersionUpgradeModal />
-      <CheckUserName /> 
-      <LocationToggle />
-      {loading ? (
-        <LoaderContainer />
+      <CheckUserName />
+      <CheckCartItems />
+      {isInitialLoading ? (
+        <LoaderContainer /> // Only full-page loader on first load
       ) : (
         <FlatList
+          style={{ paddingBottom: wp(2) }}
+          showsVerticalScrollIndicator={false}
           data={[1]}
           keyExtractor={() => "123456"}
           refreshControl={
@@ -228,10 +231,14 @@ const HomeScreen = () => {
           }
           renderItem={() => (
             <>
+              <LocationToggle />
               <SearchContainer banner={homePageData} />
               <CarouselData banner={homePageData} />
               <CategoryList banner={homePageData} />
-              <StoreListData banner={homePageData} useCurrentLocation={useCurrentLocation} />
+              <StoreListData
+                banner={homePageData}
+                useCurrentLocation={useCurrentLocation}
+              />
             </>
           )}
         />
@@ -242,11 +249,11 @@ const HomeScreen = () => {
 };
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  toggleRow: {
-    width: "95%",
-    padding: wp(3),
-    alignItems: "flex-end",
-    flexDirection: "row", alignSelf: "center", alignItems: "center", justifyContent: "space-between"
+  background: {
+    width: '100%', height: '100%',
+  }, toggleRow: {
+    width: "95%", padding: wp(3),
+    alignItems: "flex-end", flexDirection: "row", alignSelf: "center", alignItems: "center", justifyContent: "space-between"
   }
 });
 export default HomeScreen;

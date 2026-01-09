@@ -13,14 +13,14 @@ const LoaderCart = ({ showBackArrow }) => {
   const skeletonItems = Array.from({ length: 5 });
   return (
     <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
-      <HeaderBar title="My Cart" showBackArrow={showBackArrow} />
+      {/* <HeaderBar title="My Cart" showBackArrow={showBackArrow} /> */}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: wp(2) }}>
         <>
-          {skeletonItems.map((_, index) => (
+          {/* {skeletonItems.map((_, index) => (
             <View key={index} style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: '#fff',
+              backgroundColor:COLORS[theme].cardBackground,
               padding: wp(2),
               borderRadius: wp(1),
               marginBottom: wp(2),
@@ -30,7 +30,6 @@ const LoaderCart = ({ showBackArrow }) => {
               shadowRadius: 1,
               elevation: 2,
             }}>
-              {/* Image skeleton */}
               <View style={{
                 width: wp(12),
                 height: wp(12),
@@ -39,7 +38,6 @@ const LoaderCart = ({ showBackArrow }) => {
                 marginRight: wp(4),
               }} />
               <View style={{ flex: 1 }}>
-                {/* Name skeleton */}
                 <View style={{
                   width: '60%',
                   height: wp(3.5),
@@ -47,7 +45,6 @@ const LoaderCart = ({ showBackArrow }) => {
                   backgroundColor: '#e0e0e0',
                   marginBottom: wp(1),
                 }} />
-                {/* Price skeleton */}
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={{
                     width: wp(10),
@@ -64,7 +61,6 @@ const LoaderCart = ({ showBackArrow }) => {
                   }} />
                 </View>
               </View>
-              {/* Qty skeleton */}
               <View style={{
                 width: wp(20),
                 height: wp(6),
@@ -73,23 +69,25 @@ const LoaderCart = ({ showBackArrow }) => {
                 marginLeft: wp(2),
               }} />
             </View>
+          ))} */}
+          {skeletonItems.map((_, index) => (
+            <View style={{
+              width: wp(92),
+              height: hp(10),
+              borderRadius: wp(1),
+              backgroundColor:theme == 'dark' ? "#555":"#ddd",
+              margin: wp(2),
+            }} />
           ))}
-          <View style={{
-            width: wp(92),
-            height: wp(15),
-            borderRadius: wp(1),
-            backgroundColor: '#e0e0e0',
-            margin: wp(2),
-          }} />
         </>
       </ScrollView >
-      <View style={{
+      {/* <View style={{
         width: wp(92),
         height: wp(15),
         borderRadius: wp(1),
         backgroundColor: '#e0e0e0',
         margin: wp(2), position: "relative", bottom: wp(0), left: 10
-      }} />
+      }} /> */}
     </View >
   );
 };

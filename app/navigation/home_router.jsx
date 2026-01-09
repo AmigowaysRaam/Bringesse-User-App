@@ -7,7 +7,10 @@ import { useTranslation } from 'react-i18next';
 import Notification from '../screens/Notification';
 import OrdersScreen from '../screens/OrdersScreen';
 import CartList from '../screens/mycart';
+import BookingsList from '../screens/BookingsList';
+import CartStack from './CartStack';
 const Tab = createBottomTabNavigator();
+
 function HomeTabRouter() {
   const { t } = useTranslation();
   return (
@@ -28,10 +31,13 @@ function HomeTabRouter() {
           />
           <Tab.Screen name={t('Booking')} component={CartList} />
         </>
+        {/* <Tab.Screen name="CartTab" component={CartStack} /> */}
       <Tab.Screen name={t('Notification')} component={Notification} />
       <Tab.Screen name={t('More')} component={MoreScreen} />
     </Tab.Navigator>
   );
 }
+
+
 export default HomeTabRouter;
 // RevenueScreen

@@ -1,10 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useState } from 'react';
 import {
-  View, StyleSheet,
-  ScrollView, Platform,
-  KeyboardAvoidingView,
-  TouchableOpacity,
+  View, StyleSheet, ScrollView, Platform, KeyboardAvoidingView, TouchableOpacity,
   Text, ActivityIndicator,
 } from 'react-native';
 import { TextInput } from 'react-native-paper';
@@ -49,7 +46,7 @@ const EditProfile = () => {
   };
   const validateFields = () => {
     const newErrors = {};
-   
+
     if (!formValues.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required.';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -83,7 +80,7 @@ const EditProfile = () => {
           payload: data,
         });
         setTimeout(() => {
-          navigation?.goBack(); 
+          navigation?.goBack();
           setLoading(false);
         }, 500);
       } else {
@@ -121,6 +118,7 @@ const EditProfile = () => {
     <View style={styles.fieldContainer}>
       <Text style={[styles.label, { color: COLORS[theme].textPrimary }]}>{label}</Text>
       <TextInput
+        maxLength={field == 'full_name' ? 25 : 49}
         mode="outlined"
         value={value}
         style={styles.input}
@@ -146,9 +144,9 @@ const EditProfile = () => {
       >
         {renderTextField('Full Name', formValues.full_name, 'full_name')}
         {renderTextField('Email ID', formValues.email, 'email')}
-        <TouchableOpacity 
-        onPress={() => setVerifyModalVisible(true)} 
-        style={styles.fieldContainer}>
+        <TouchableOpacity
+          onPress={() => setVerifyModalVisible(true)}
+          style={styles.fieldContainer}>
           <Text style={[styles.label, { color: COLORS[theme].textPrimary }]}>Mobile Number <Text style={{ color: "red" }}>*</Text> </Text>
           <TextInput
             style={styles.input}

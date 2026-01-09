@@ -17,7 +17,7 @@ const CarouselData = ({ banner }) => {
                 scrollViewRef.current?.scrollTo({ x: wp(100) * nextIndex, animated: true });
                 return nextIndex;
             });
-        }, 2000);
+        }, 5000);
         return () => clearInterval(intervalId); // Cleanup on unmount
     }, [banner?.admin_banner.length]);
     const handleNav = (url) => {
@@ -55,13 +55,14 @@ const styles = StyleSheet.create({
     scrollContainer: {
         flexDirection: 'row', // Ensure horizontal scrolling
     }, card: {
-        width: wp(100), height: wp(45),
+        width: wp(100), height: wp(44),
         justifyContent: 'center', alignItems: 'center',
     },
     profileImage: {
-        width: '100%', height: "100%", // Image height adjusted similarly
-        borderRadius: wp(1), resizeMode: "contain",
+        width: '95%', height: "100%", // Image height adjusted similarly
+        borderRadius: wp(2), resizeMode: "contain",
     },
+    
     textContainer: {
         position: 'absolute',
         bottom: hp(2), left: 0, right: 0, alignItems: 'center',

@@ -51,7 +51,7 @@ const SubscriptionList = () => {
   }, [accessToken, profileDetails?.driver_id]);
 
   useEffect(() => {
-    console?.log(profileDetails, "profileDetails?.driver_id")
+    // console?.log(profileDetails, "profileDetails?.driver_id")
     fetchSubscription();
   }, [fetchSubscription]);
 

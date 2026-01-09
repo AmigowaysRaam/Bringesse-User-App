@@ -1,21 +1,11 @@
 import React, {
-  useEffect,
-  useState,
-  useCallback,
+  useEffect, useState, useCallback,
   useMemo,
 } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  RefreshControl,
-  Image,
-  TouchableOpacity,
-  TextInput,
+  View,  Text,  FlatList,  StyleSheet,  ActivityIndicator,
+  RefreshControl,  Image,  TouchableOpacity,  TextInput,
 } from 'react-native';
-
 import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 import { COLORS } from '../resources/colors';
@@ -28,15 +18,18 @@ import { fetchData } from '../api/api';
 import { useSelector } from 'react-redux';
 import moment from 'moment';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import messaging from '@react-native-firebase/messaging';
 
 const OrdersHistory = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const navigation = useNavigation();
-
   const profile = useSelector(state => state.Auth.profileDetails);
   const accessToken = useSelector(state => state.Auth.accessToken);
-
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async () => fetchOrders());
+    return unsubscribe;
+  }, [fetchOrders]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,13 +100,11 @@ const OrdersHistory = () => {
     return orders.filter(item =>
       item?.store_name?.toLowerCase().includes(text) ||
       item?.order_id?.toString().includes(text) ||
-      item?.uniqueId?.toString().includes(text)
+      item?.uniqueId?.toString().includes(text) || 
+      item?.order_status?.toString().includes(text) 
     );
   }, [orders, searchText]);
 
-  /* ------------------------------------
-     Render Item
-  ------------------------------------ */
   const renderItem = ({ item }) => (
     <TouchableOpacity
       onPress={() =>
@@ -153,8 +144,6 @@ const OrdersHistory = () => {
         >
           Order ID: {item?.uniqueId || item?.order_id?.slice(-6)}
         </Text>
-
-        {/* Exact Date */}
         <Text
           style={[
             poppins.regular.h8,
@@ -317,7 +306,7 @@ const styles = StyleSheet.create({
     marginHorizontal: wp(3),
     paddingHorizontal: wp(3),
     borderRadius: wp(3),
-    marginBottom: wp(1),borderWidth:wp(0.3),borderColor:"#CCC"
+    marginBottom: wp(1), borderWidth: wp(0.3), borderColor: "#CCC"
 
   },
   searchInput: {

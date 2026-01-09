@@ -8,7 +8,6 @@ import { poppins } from '../resources/fonts';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
-
 const UserProfileCard = () => {
   const { theme } = useTheme();
   const { t } = useTranslation();
@@ -63,15 +62,15 @@ const UserProfileCard = () => {
           size={wp(8)}
           style={styles.editIcon}
           color={COLORS[theme].textPrimary}
+        // tintColor={COLORS[theme].textPrimary}
         />
       </TouchableOpacity>
 
       {/* User Info */}
       <View style={styles.infoContainer}>
-        <Text style={[poppins.semi_bold.h7, styles.userName, { color: COLORS[theme].primary }]}>
+        <Text style={[poppins.semi_bold.h8, styles.userName, { color: COLORS[theme].primary }]}>
           {userName}
         </Text>
-
         <TouchableOpacity
           onPress={() => navigation.navigate('EditProfile')}
           style={[styles.editButton, { backgroundColor: COLORS[theme].buttonBg }]}
@@ -107,7 +106,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   imageContainer: {
-    position: 'relative',
+    position: 'relative', zIndex: 999
   },
   profileImage: {
     width: wp(20),
@@ -119,13 +118,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: -wp(1),
-    backgroundColor: 'transparent',
   },
   infoContainer: {
-    marginLeft: hp(4),
+    marginLeft: hp(2),
+    width: wp(58),
+    // backgroundColor: "red"
   },
   userName: {
-    fontSize: wp(4.5),
+    fontSize: wp(4),
     textTransform: 'capitalize',
     marginBottom: wp(2),
   },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: wp(2),
+    paddingVertical: wp(1.5),
     paddingHorizontal: wp(4),
     borderRadius: wp(10),
     shadowColor: '#000',
@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+    width: wp(35)
   },
 });
 export default UserProfileCard;

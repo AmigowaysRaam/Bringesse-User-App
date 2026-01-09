@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
-  Alert,
+  ScrollView,
 } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../resources/colors';
@@ -15,26 +15,25 @@ import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// Enable animation on Android
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental &&
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
 const ReviewCard = ({ orderDetail, title }) => {
+
   const { theme } = useTheme();
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    console.log(orderDetail, 'Order Detail in Review Card');
-    // Alert.alert(orderDetail?.driver_review?.review)
-  }, []);
   const toggleExpand = () => {
     LayoutAnimation.easeInEaseOut();
     setExpanded(!expanded);
   };
+
   if (orderDetail?.review == null) {
-    return
+    return null;
   }
+
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: COLORS[theme].accent }]}
@@ -59,7 +58,6 @@ const ReviewCard = ({ orderDetail, title }) => {
           >
             {orderDetail?.rating || 0}
           </Text>
-
           <Text
             style={[
               poppins.regular.h7,
@@ -70,30 +68,26 @@ const ReviewCard = ({ orderDetail, title }) => {
             {title}
           </Text>
         </View>
-        {/* Order ID */}
-        <Text
-          numberOfLines={1}
-          style={[
-            poppins.regular.h9,
-            { color: COLORS[theme].white, marginTop: hp(0.5) },
-          ]}
-        >
-          Order ID: #{orderDetail?.order_id}
-        </Text>
 
-        {/* Expandable Review Text */}
+        {/* Review Text with Scroll */}
         {expanded && (
-          <Text
-            style={[
-              poppins.regular.h9,
-              { color: COLORS[theme].white, marginTop: hp(1) },
-            ]}
+          <ScrollView
+            style={styles.reviewScroll}
+            showsVerticalScrollIndicator={true}
           >
-            {orderDetail?.review || 'No review provided.'}
-          </Text>
+            <Text
+              style={[
+                poppins.regular.h9,
+                { color: COLORS[theme].white },
+              ]}
+            >
+              {orderDetail?.review || 'No review provided.'}
+            </Text>
+          </ScrollView>
         )}
       </View>
-      {/* TOGGLE ICON */}
+
+      {/* Arrow Icon */}
       <MaterialCommunityIcons
         name={expanded ? 'chevron-up' : 'chevron-down'}
         size={wp(7)}
@@ -102,17 +96,18 @@ const ReviewCard = ({ orderDetail, title }) => {
     </TouchableOpacity>
   );
 };
+
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingVertical: wp(1),
+    paddingVertical: wp(2),
     paddingHorizontal: wp(4),
-    marginVertical: hp(1),
+    marginVertical: wp(1),
     width: wp(95),
     alignSelf: 'center',
-    borderRadius: wp(3),
+    borderRadius: wp(1),
     elevation: 3,
   },
   leftSection: {
@@ -127,6 +122,10 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
     marginTop: hp(0.3),
   },
+  reviewScroll: {
+    width: wp(80),
+    marginTop: hp(1),
+    maxHeight: hp(60), // 🔥 Scroll activates after this height
+  },
 });
-
 export default ReviewCard;

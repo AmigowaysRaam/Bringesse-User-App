@@ -1,49 +1,33 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Dimensions,
-  ToastAndroid,
-  Platform,
-  UIManager,
+  View, TouchableOpacity, Text, StyleSheet, Dimensions, ToastAndroid,
+  Platform, UIManager,
 } from 'react-native';
-
 import IonicIcon from 'react-native-vector-icons/Ionicons';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
-
 import { hp, wp } from '../../resources/dimensions';
 import { COLORS } from '../../resources/colors';
 import { commonStyles } from '../../resources/styles';
 import { useTheme } from '../../context/ThemeContext';
-
 import { useSelector } from 'react-redux';
 import { fetchData } from '../../api/api';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { poppins } from '../../resources/fonts';
-
 const { width } = Dimensions.get('window');
-const TAB_WIDTH = width / 5;
-
-// Enable animation on Android
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental &&
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
 // Render Icons
 const getTabIcon = (routeName, isFocused, colorScheme, cartCount, activeRoute) => {
   const iconColor = isFocused
     ? COLORS[colorScheme].white
     : COLORS[colorScheme].tabInActive;
-
   switch (routeName) {
     case 'Home':
       return <IonicIcon name="home" color={iconColor} size={wp(6)} />;
-
     case 'Booking':
       return (
         <View style={styles.iconContainer}>
@@ -55,7 +39,6 @@ const getTabIcon = (routeName, isFocused, colorScheme, cartCount, activeRoute) =
           )}
         </View>
       );
-
     case 'Notification':
       return (
         <MaterialIcon
@@ -75,31 +58,32 @@ const getTabIcon = (routeName, isFocused, colorScheme, cartCount, activeRoute) =
       return <IonicIcon name="home" color={iconColor} size={wp(5)} />;
   }
 };
-
 const BottomTabBar = ({ state, descriptors, navigation }) => {
   const { theme } = useTheme();
-
   const profile = useSelector((state) => state?.Auth?.profile);
   const accessToken = useSelector((state) => state.Auth.accessToken);
   const profileDetails = useSelector((state) => state.Auth.profileDetails);
-
   const [cartCount, setCartCount] = useState(0);
   const [activeRoute, setActiveRoute] = useState(state.index);
   const [allowRemove, setAllowRemove] = useState(false);
-
+  const currentRouteName = state.routes[state.index].name;
   // Check if tab bar is focused
   const isFocused = navigation.isFocused();
-
   // Focus effect to fetch cart data ONLY when tab bar is active
   useFocusEffect(
     useCallback(() => {
       fetchCartCount();
-    }, [activeRoute,cartCount])
+    }, [activeRoute, cartCount])
   );
-
+  useFocusEffect(
+    useCallback(() => {
+      if (currentRouteName !== '' && currentRouteName == 'Booking')
+        setActiveRoute(2);
+    }, [currentRouteName])
+  );
   useEffect(() => {
     fetchCartCount();
-  }, [activeRoute,cartCount])
+  }, [activeRoute, cartCount])
 
   // Fetch cart count (runs ONLY on focus)
   const fetchCartCount = async () => {
@@ -176,96 +160,100 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
 
   return (
     <>
-      {activeRoute !== 2 && cartCount > 0 && (
-        <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-          <TouchableOpacity
-            onPress={handleViewCartClick}
-            style={{
-              backgroundColor: COLORS[theme].accent,
-              width: wp(allowRemove ? 70 : 90),
-              height: hp(6),
-              alignSelf: 'center',
-              borderRadius: wp(2),
-              justifyContent: 'center',
-              marginBottom: wp(3),
-              paddingHorizontal: wp(4),
-            }}
-          >
-            <View
+      {
+        // activeRoute !== 1 || activeRoute !== 2 && cartCount > 0
+        currentRouteName !== 'Booking' && currentRouteName !== 'Home'
+        && cartCount > 0
+        &&
+        (
+          <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+            <TouchableOpacity
+              onPress={handleViewCartClick}
               style={{
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
+                backgroundColor: COLORS[theme].accent,
+                width: wp(allowRemove ? 70 : 90),
+                height: hp(5),
+                alignSelf: 'center',
+                borderRadius: wp(2),
+                justifyContent: 'center',
+                marginBottom: wp(3),
+                paddingHorizontal: wp(4),
               }}
             >
-              <View>
-                <Text
-                  style={[
-                    poppins.semi_bold.h6,
-                    { color: '#fff', fontSize: wp(3.5), marginTop: wp(1) },
-                  ]}
-                >
-                  {cartCount} item{cartCount > 1 ? 's' : ''} in your cart
-                </Text>
-              </View>
-
-              {/* Toggle Remove Button */}
-              <TouchableOpacity
-                onPress={() => setAllowRemove(!allowRemove)}
+              <View
                 style={{
-                  backgroundColor: '#fff',
-                  paddingHorizontal: wp(3),
-                  height: wp(6),
-                  borderRadius: wp(1),
-                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  minWidth: wp(6),
+                }}
+              >
+                <View>
+                  <Text
+                    style={[
+                      poppins.semi_bold.h6,
+                      { color: '#fff', fontSize: wp(3.5), marginTop: wp(1) },
+                    ]}
+                  >
+                    {cartCount} item{cartCount > 1 ? 's' : ''} in your cart
+                  </Text>
+                </View>
+
+                {/* Toggle Remove Button */}
+                <TouchableOpacity
+                  onPress={() => setAllowRemove(!allowRemove)}
+                  style={{
+                    backgroundColor: '#fff',
+                    paddingHorizontal: wp(3),
+                    height: wp(6),
+                    borderRadius: wp(1),
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    minWidth: wp(6),
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: 'red',
+                      fontSize: wp(4),
+                      fontWeight: '600',
+                      textAlign: 'center',
+                    }}
+                  >
+                    X
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity >
+            {allowRemove && (
+              <TouchableOpacity
+                onPress={handleRemoveCartClick}
+                style={{
+                  backgroundColor: 'red',
+                  width: wp(20),
+                  height: wp(9),
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: wp(2),
+                  position: 'relative',
+                  top: hp(0.5),
                 }}
               >
                 <Text
                   style={{
-                    color: 'red',
+                    color: '#FFF',
                     fontSize: wp(4),
                     fontWeight: '600',
-                    textAlign: 'center',
+                    textAlign: 'center',lineHeight:wp(8)
                   }}
                 >
-                  X
+                  Remove
                 </Text>
               </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-
-          {allowRemove && (
-            <TouchableOpacity
-              onPress={handleRemoveCartClick}
-              style={{
-                backgroundColor: 'red',
-                width: wp(20),
-                height: wp(12),
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: wp(2),
-                position: 'relative',
-                top: hp(0.5),
-              }}
-            >
-              <Text
-                style={{
-                  color: '#FFF',
-                  fontSize: wp(4),
-                  fontWeight: '600',
-                  textAlign: 'center',
-                }}
-              >
-                Remove
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-
-      {/* 🔽 Bottom Tabs */}
+            )
+            }
+          </View >
+        )}
+      {/* <Text>{currentRouteName}</Text> */}
       <View
         style={[
           styles.tabContainer,
@@ -278,7 +266,6 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
             const { options } = descriptors[route.key];
             const label = options.tabBarLabel || route.name;
             const isTabFocused = activeRoute === index;
-
             return (
               <TouchableOpacity
                 key={index}
@@ -307,42 +294,31 @@ const BottomTabBar = ({ state, descriptors, navigation }) => {
     </>
   );
 };
-
 const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
-    height: wp(16),
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  tabs: {
+    height: wp(16), justifyContent: 'space-around',
+    alignItems: 'center', borderTopWidth: wp(0.2), borderColor: "#CCC"
+  }, tabs: {
     flexDirection: 'row',
-    width: wp(100),
-    justifyContent: 'space-around',
+    width: wp(100), justifyContent: 'space-around',
   },
   tabButton: {
     padding: wp(2),
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     marginHorizontal: hp(2.2),
   },
   iconContainer: {
     position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
   cartCountBadge: {
     position: 'absolute',
-    top: -wp(2),
-    right: -wp(4),
-    backgroundColor: '#ff0000',
-    borderRadius: wp(2.5),
-    width: wp(5),
-    height: wp(5),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cartCountText: {
+    top: -wp(2), right: -wp(4),
+    backgroundColor: '#ff0000', borderRadius: wp(2.5),
+    width: wp(5), height: wp(5),
+    alignItems: 'center', justifyContent: 'center',
+  }, cartCountText: {
     color: '#fff',
     fontSize: wp(3),
   },

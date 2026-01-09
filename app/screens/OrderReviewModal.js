@@ -12,15 +12,12 @@ import { useTheme } from '../context/ThemeContext';
 import { fetchData } from '../api/api';
 import { useSelector } from 'react-redux';
 import { useNavigation } from '@react-navigation/native';
-
 const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType, storeId }) => {
   const { theme } = useTheme();
   const navigation = useNavigation();
-
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState('');
   const [loading, setLoading] = useState(false);
-
   const accessToken = useSelector((state) => state.Auth.accessToken);
   const profile = useSelector((state) => state.Auth.profile);
   // Alert.alert(reviewType)
@@ -36,9 +33,9 @@ const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType, sto
 
   // ✅ Submit handler
   const handleSubmit = async () => {
-    if (!rating) return alert('Please select a rating!');
-    Alert.alert(JSON.stringify(driver))
-    return
+    if (!rating) return Alert.alert('Please select a rating!');
+    // Alert.alert(JSON.stringify(bookingId))
+    // return
     setLoading(true);
     try {
       const payload = {
@@ -50,13 +47,14 @@ const OrderReviewModal = ({ visible, onClose, bookingId, driver, reviewType, sto
         source_id: reviewType === 'driver' ? driver?.driverid : storeId,
       };
       console.log(JSON.stringify(payload, null, 2), "payload")
-
       const response = await fetchData('updatereview', 'POST', payload, {
         Authorization: `${accessToken}`,
         user_id: profile?.user_id,
         type: 'user',
       });
-      // console.log(JSON.stringify(response, null, 2),"response")
+      console.log(JSON.stringify(response, null, 2), "updatereview")
+
+      // Alert.alert("response",JSON.stringify(response, null, 2))
       if (response?.status === true || response?.status === 'true') {
         ToastAndroid.show(response?.message, ToastAndroid.SHORT);
         onClose();

@@ -43,7 +43,7 @@ const BookingsList = ({ onModalToggle }) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
       const data = await fetchData('transport/bookinghistory', 'POST', payload, headers);
-      console.log(data, "bookinghistorybookinghistory")
+      // console.log(data, "bookinghistorybookinghistory")
       if (data?.status === true && Array.isArray(data?.data)) {
         setBookingData(data.data);
       } else {
@@ -125,11 +125,11 @@ const BookingsList = ({ onModalToggle }) => {
       onPress={() => openModal(item)}
       style={[styles.card, { backgroundColor: COLORS[theme].viewBackground }]}
     >
-      {/* <Text>{JSON.stringify(item)}</Text> */}
+      {/* <Text style={{color:"#000"}}>{JSON.stringify(item,null,2)}</Text> */}
       <View style={styles.iconContainer}>
         {item.vehicle?.image ? (
           <Image
-            source={{ uri: `${siteDetails?.media_url+"vehicles/"}${item.vehicle.image}` }}
+            source={{ uri: `${siteDetails?.media_url + "vehicles/"}${item.vehicle.image}` }}
             style={styles.vehicleImage}
             resizeMode="contain"
           />
@@ -142,20 +142,17 @@ const BookingsList = ({ onModalToggle }) => {
           #{item.uniqueId || 'N/A'}
         </Text>
         <Text style={[poppins.regular.h8, { marginTop: hp(0.5), color: COLORS[theme].textPrimary }]}>
-          Vehicle: {item.vehicle?.name || 'N/A'} ({item.categoryName})
+          Vehicle: {item.vehicle?.name || 'N/A'} ({item?.categoryName})
         </Text>
-
         <Text style={[poppins.regular.h8, { marginTop: hp(0.5), color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
           Status: {item.status}
         </Text>
-
         <Text style={[poppins.regular.h8, { marginTop: hp(0.5), color: COLORS[theme].textPrimary }]}>
           {formatDate(item.createdAt)}
         </Text>
       </View>
     </Pressable>
   );
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
@@ -219,7 +216,6 @@ const BookingsList = ({ onModalToggle }) => {
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.status}</Text>
                 <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Pickup Address:</Text>
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.pickupAddress}</Text>
-
                 {
                   selectedItem?.drop &&
                   <>
@@ -227,11 +223,22 @@ const BookingsList = ({ onModalToggle }) => {
                     <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.dropAddress}</Text>
                   </>
                 }
+                <View style={{
+                  flexDirection: "row", justifyContent: "space-around",
+                  backgroundColor: COLORS[theme].cardBackground, borderWidth: wp(0.5), borderColor: "#CCCF", borderRadius: wp(2),marginTop:hp(1)
+                }}>
+                  <View>
+                    <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>OTP:</Text>
+                    <Text style={[poppins.semi_bold.h4, styles.modalVlue, { color: COLORS[theme].primary }]}>{selectedItem?.otp}</Text>
+                  </View>
+                  <View>
+                    <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Complete OTP:</Text>
+                    <Text style={[poppins.semi_bold.h4, styles.modalVlue, { color: COLORS[theme].primary }]}>{selectedItem?.completeOtp}</Text>
+                  </View>
+                </View>
 
-
-                <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>OTP:</Text>
-                <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.otp}</Text>
-
+                <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Delivery Charge :</Text>
+                <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{selectedItem?.driver_fare || '-'}</Text>
                 <Text style={[styles.modalLabel, { color: COLORS[theme].primary }]}>Created At:</Text>
                 <Text style={[styles.modalValue, { color: COLORS[theme].primary }]}>{formatDate(selectedItem?.createdAt)}</Text>
                 {
@@ -313,10 +320,10 @@ const styles = StyleSheet.create({
   },
   modalLabel: {
     marginTop: hp(1.5),
-    fontSize: wp(3.5), fontFamily: poppins.medium.h8.fontFamily,
+    fontSize: wp(3.1), fontFamily: poppins.medium.h9.fontFamily,
   },
   modalValue: {
-    fontSize: wp(4), fontFamily: poppins.semi_bold.h7.fontFamily,
+    fontSize: wp(3.1), fontFamily: poppins.semi_bold.h7.fontFamily,
   },
   modalActions: {
     flexDirection: 'row', justifyContent: 'space-between',

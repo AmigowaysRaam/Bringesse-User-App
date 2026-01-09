@@ -5,8 +5,7 @@ import RazorpayCheckout from 'react-native-razorpay';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Image, ActivityIndicator, Alert, ScrollView, ToastAndroid, NativeModules, NativeEventEmitter,
   TouchableWithoutFeedback, RefreshControl,
-  BackHandler,
-  Pressable,
+  BackHandler, Pressable,
 } from 'react-native';
 import UseProfileHook from '../hooks/profile-hooks';
 import { useSelector } from 'react-redux';
@@ -39,7 +38,6 @@ export default function CartList({ route }) {
   const [cartSummary, setCartSummary] = useState([]);
   const [chargesSentPay, setchargesSentPay] = useState([]);
   const [selectedVariant, setselectedVariant] = useState(null);
-
   const [taxSummary, setTaxSummary] = useState([]);
   const [grandTotal, setGrandTotal] = useState(0);
   const [cdata, setcdata] = useState(null);
@@ -52,7 +50,10 @@ export default function CartList({ route }) {
   const [isAccepted, setIsAccepted] = useState(false); // ✅ user acceptance
   const [showConfirm, setshowConfirm] = useState(false); // ✅ user acceptance
   // ✅ Fetch Cart Data
+
+
   const fetchCart = async () => {
+    fetchVehicleType();
     if (!profileDetails?.primary_address?.lat || !profileDetails?.primary_address?.lat) {
       setLoading(false);
       return
@@ -60,7 +61,6 @@ export default function CartList({ route }) {
     try {
       setLoading(true);
       setError(null);
-      await fetchVehicleType();
       const response = await fetch('https://bringesse.com:3003/api/cart/get', {
         method: 'POST',
         headers: {
@@ -77,27 +77,12 @@ export default function CartList({ route }) {
           couponCode: appliedCoupon?.code || '',
         }),
       });
-      console.log("payload",
-        JSON.stringify({
-          user_id: profile?.user_id,
-          lat: profileDetails?.primary_address?.lat,
-          lon: profileDetails?.primary_address?.lon,
-          vehcileTypes: selectedVehicle?.value || '',
-          couponCode: appliedCoupon?.code || '',
-        }),
-        {
-          'Content-Type': 'application/json',
-          Authorization: accessToken ? `${accessToken}` : '',
-          user_id: profile?.user_id || '',
-          type: 'user',
-        }
-      )
       const data = await response.json();
       if (data?.status && Array.isArray(data?.data?.items)) {
         setGrandTotal(data?.data?.grand_total)
         setcouponList(cdata?.availableCoupons)
         setcdata(data?.data)
-        // Alert.alert("Cart Data", JSON.stringify( data.data.items,null,2));
+        fetchVehicleType();
         const formatted = data.data.items.map(item => {
           const variant = item.selected_variant || {};
           const isOffer = variant.offer_available === 'true';
@@ -116,10 +101,10 @@ export default function CartList({ route }) {
             storeId: item.store_id,
             grandTotal: data.data.grand_total || 0,
             totalAmount: item?.totalAmount,
+            offer_available: item?.offer_available,
+            offer_percentage: item?.offer_percentage,
           };
         });
-        // Alert.alert("Cart Items", JSON.stringify( data?.data,null,2));
-        setselectedVariant()
         setItems(formatted);
         setStoreId(data.data.storeDetails?._id);
         setCartSummary(data?.data?.itemCharges);
@@ -128,13 +113,6 @@ export default function CartList({ route }) {
         setLoading(false);
       } else {
         setItems([]);
-        // ToastAndroid.show(data?.message || 'Cart is empty', ToastAndroid.SHORT);
-        // setError('No items found in your cart.');
-        // AsyncStorage.clear();
-        // navigation.reset({
-        //   index: 0,
-        //   routes: [{ name: 'GetStartedScreen' }],
-        // });
         setLoading(false);
       }
     } catch (err) {
@@ -142,44 +120,75 @@ export default function CartList({ route }) {
       setError('Failed to load cart. Please try again.');
       setLoading(false);
     } finally {
+      // fetchVehicleType();
     }
   };
   // ✅ Fetch Vehicle Types
   const fetchVehicleType = async () => {
     if (!accessToken || !profile?.user_id) return;
     try {
-      const data = await fetchData('getdeliveryvehicles/', 'GET', null, {
-        Authorization: `${accessToken}`,
-        user_id: profile?.user_id,
-        type: 'user',
-      });
-      setVehcileTypes(
-        data?.data?.result?.map(item => ({
-          label: item.name,
-          value: item._id,
-        })) || []
+      const data = await fetchData(
+        'getdeliveryvehicles/',
+        'POST',
+        { storeId: cdata?.storeDetails?._id },
+        {
+          Authorization: `${accessToken}`,
+          user_id: profile?.user_id,
+          type: 'user',
+        }
       );
+      // Alert.alert("",JSON.stringify(data?.deliveryOptions,null,2))
+      // Merge both sources
+      const merged = [
+        ...(data?.data?.result || []),
+        ...(data?.deliveryOptions || []),
+      ];
+      // Map to {label, value}
+      const vehicleTypes = merged.map(item => {
+        // If item is object with _id, use it
+        if (typeof item === 'object' && item !== null && item._id) {
+          return { label: item.name, value: item._id };
+        }
+        // If item is object with name only
+        if (typeof item === 'object' && item !== null && item.name) {
+          return { label: item.name, value: item.name };
+        }
+        // If item is string
+        return { label: item, value: item };
+      });
+      // Remove duplicates by value
+      const uniqueVehicleTypes = [
+        ...new Map(vehicleTypes.map(v => [v.value, v])).values(),
+      ];
+      setVehcileTypes(uniqueVehicleTypes);
     } catch (error) {
       console.error('getdeliveryvehicles API Error:', error);
     }
   };
+
+
   const [selProdtedData, setselProdtedData] = useState(null);
   useFocusEffect(
     useCallback(() => {
-      fetchCart();
       fetchVehicleType();
+      fetchCart();
       // }, [profileDetails?.primary_address?.lat, selectedVehicle])
-    }, [profileDetails?.primary_address?.lat, selectedVehicle, appliedCoupon?._id, appliedCoupon])
+    }, [profileDetails?.primary_address?.lat, selectedVehicle, appliedCoupon?._id, appliedCoupon, showVehicleModal])
   );
-  const orderCreatedRef = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      fetchVehicleType();
+    }, [cdata])
+  );
 
+  const orderCreatedRef = useRef(false);
   useEffect(() => {
     const eventEmitter = new NativeEventEmitter(NativeModules.HyperSdkReact);
-
     const eventListener = eventEmitter.addListener("HyperEvent", (resp) => {
       const data = JSON.parse(resp);
       const event = data.event || "";
-
+      // Alert.alert('JK', JSON.stringify(, null, 2))
+      const charg = chargesSentPay || []
       const formattedItems = items.map(item => ({
         itemId: item.id,
         item_id: item.id,
@@ -194,13 +203,11 @@ export default function CartList({ route }) {
         variantIndex: item.variantIndex,
         selected_variant: item?.selectedVariant,
       }));
-
       const formattedTaxes = (taxSummary || []).map(tax => ({
         name: tax.name || "",
         percentage: tax.percentage || 0,
         amount: tax.amount || 0,
       }));
-
       switch (event) {
         case "process_result": {
           const error = data.error || false;
@@ -209,7 +216,7 @@ export default function CartList({ route }) {
 
           if (!error && status === "charged" && !orderCreatedRef.current) {
             orderCreatedRef.current = true;
-            sendPayment(payload, "juspay", formattedItems, formattedTaxes);
+            sendPayment(payload, "juspay", formattedItems, formattedTaxes, charg);
           }
           // if (!error && status === "charged") {
           //   ToastAndroid.show("Payment Success!", ToastAndroid.LONG);
@@ -248,10 +255,9 @@ export default function CartList({ route }) {
         break;
     }
   };
-
-
   useFocusEffect(
     React.useCallback(() => {
+      // Alert.alert("zcxxzc", JSON.stringify(cdata?.itemCharges, null, 2));
       if (showBackArrow) return;
       const onBackPress = () => {
         // block back ONLY on this screen
@@ -271,10 +277,8 @@ export default function CartList({ route }) {
     return result.charAt(0).toUpperCase() + result.slice(1);
   };
   const handlePayment = async (payMethod) => {
-    if (!selectedVehicle) {
-      Alert.alert("Please select a vehicle type before proceeding.");
-      return;
-    }
+    // Alert.alert("jh", JSON.stringify(chargesSentPay, null, 2))
+    // return true
     if (!profileDetails?.primary_address?.lon) {
       navigation.navigate("SelectLocation");
       return;
@@ -291,16 +295,14 @@ export default function CartList({ route }) {
       offer: item.offer,
       subTotal: item.subTotal,
       variantIndex: item.variantIndex,
-      selected_variant: item?.selectedVariant
+      selected_variant: item?.selectedVariant,
     }));
-
     // 2️⃣ Prepare formatted taxes
     const formattedTaxes = (taxSummary || []).map(tax => ({
       name: tax.name || "",
       percentage: tax.percentage || 0,
       amount: tax.amount || 0,
     }));
-
     setLoading(true);
     try {
       const user_id = profile?.user_id;
@@ -327,7 +329,6 @@ export default function CartList({ route }) {
           Alert.alert("Error", "Invalid SDK payload from server.");
           return;
         }
-        console.log("Initiating JusPay...", payload);
         try {
           HyperSDK.process(JSON.stringify(payload));
         } catch (sdkErr) {
@@ -352,7 +353,7 @@ export default function CartList({ route }) {
       };
       RazorpayCheckout.open(options)
         .then((paymentResponse) => {
-          sendPayment(paymentResponse, "razorpay", formattedItems, formattedTaxes);
+          sendPayment(paymentResponse, "razorpay", formattedItems, formattedTaxes, chargesSentPay);
         })
         .catch((error) => {
           console.log("Razorpay Error:", error);
@@ -365,13 +366,17 @@ export default function CartList({ route }) {
       setLoading(false);
     }
   };
-
-  const sendPayment = async (paymentResponse, pg, formattedItems, formattedTaxes) => {
+  const sendPayment = async (paymentResponse, pg, formattedItems, formattedTaxes, chargesSentPayA) => {
     if (!accessToken || !profile?.user_id) return;
+    // Alert.alert("test", JSON.stringify(cdata?.itemCharges, null, 2))
+    // return true
     setLoading(true);
     try {
       const payload = {
-        charges: chargesSentPay || [],
+        cdata: cdata?.charges,
+        delivery_charge: cdata?.itemCharges,
+        charges: cdata?.charges,
+        cartSummary: cartSummary,
         items: formattedItems,
         taxes: formattedTaxes,
         categoryoffer_info: cdata?.categoryoffer_info || [],
@@ -406,10 +411,8 @@ export default function CartList({ route }) {
         primaryAddress: profileDetails?.primary_address,
         order_id: paymentResponse?.orderId,
       };
-
       // 4️⃣ Log the payload for debugging
       console.log("📦 Sending PayOrder Payload:", JSON.stringify(payload, null, 2));
-
       // 5️⃣ Send payload to API
       const response = await fetch("https://bringesse.com:3003/api/payorder/", {
         method: "POST",
@@ -421,11 +424,8 @@ export default function CartList({ route }) {
         },
         body: JSON.stringify(payload),
       });
-
       // 6️⃣ Handle API response
       const data = await response.json();
-      console.log(data, "payorder response");
-
       if (data?.status === "true" || data?.status === true) {
         ToastAndroid.show(data?.message, ToastAndroid.SHORT);
         navigation.navigate("OrdersHistory");
@@ -484,12 +484,13 @@ export default function CartList({ route }) {
   const renderItem = ({ item }) => (
     <Pressable
       onPress={() => setselProdtedData(item)} style={styles.itemRow}>
-      {item?.offer && item?.originalPrice && item?.totalAmount && (
+      {item?.offer_percentage != '' && item?.offer && item?.originalPrice && item?.totalAmount && (
         <View
           style={{
             position: 'absolute',
             bottom: wp(2),
-            left: wp(2.5),
+            left: wp(1.8),
+            // alignSelf:"center",
             backgroundColor: '#90EE90', // light green
             paddingHorizontal: wp(1),
             paddingVertical: wp(0.5),
@@ -500,17 +501,17 @@ export default function CartList({ route }) {
           <Text
             style={{
               color: COLORS[theme].black,
-              fontSize: wp(2.5),
+              fontSize: wp(2.2),
               fontWeight: 'bold',
               textTransform: 'uppercase',
             }}
           >
-            {Math.round(((item.originalPrice - item.totalAmount) / item.originalPrice) * 100)}% Off
+            {
+              item?.offer_percentage ? `${item?.offer_percentage}Off` : ''
+            }
           </Text>
         </View>
       )}
-
-
       <Image source={{ uri: item.image }} style={styles.image} />
       <View style={{ flex: 1 }}>
         {/* <Text style={{color:'#000'}}>{JSON.stringify(item,null,2)}</Text> */}
@@ -522,13 +523,7 @@ export default function CartList({ route }) {
           {item.offer && (
             <Text style={styles.strikePrice}>₹{item.originalPrice}</Text>
           )}
-          {/* {item.offer && item.originalPrice && item.totalAmount && (
-            <Text  style={[poppins.regular.h9, styles.iemTitle, {
-              color: COLORS[theme].black, maxWidth: wp(48), textTransform: "capitalize"
-            }]}>
-              {Math.round(((item.originalPrice - item.totalAmount) / item.originalPrice) * 100)}% OFF
-            </Text>
-          )} */}
+
         </View>
       </View>
       <View style={styles.qtyBox}>
@@ -544,7 +539,8 @@ export default function CartList({ route }) {
   );
   return (
     <SafeAreaView style={[styles.container, {
-      backgroundColor: COLORS[theme].background, opacity: loading ? 0.5 : 1
+      backgroundColor: COLORS[theme].background,
+      opacity: loading ? 0.8 : 1
     }]}
       pointerEvents={loading ? "none" : "auto"} // ✅ disable touch when loading
     >
@@ -552,7 +548,6 @@ export default function CartList({ route }) {
         showRightArrow={"cart"}
         onRightArrowPress={() => navigation.navigate('OrdersHistory')}
       />
-      {/* <Text>{JSON.stringify(cdata?.storeDetails)}</Text> */}
       {!loading && items.length === 0 ? (
         <View style={styles.centerScreen}>
           <Text style={[poppins.semi_bold.h4, { color: COLORS[theme].primary }]}>
@@ -581,20 +576,22 @@ export default function CartList({ route }) {
               onPress={() => {
                 setShowVehicleModal(true);
               }}
-              style={styles.vehicleSelector}
+              style={[styles.vehicleSelector,{
+                borderColor: theme == 'dark'? '#555' : '#DDD'
+              }]}
             >
               <Text style={[poppins.regular.h7, styles.vehicleText, { color: COLORS[theme].primary }]}>
-                {vehcileTypes?.length == 0 ? "No Vehicles" : selectedVehicle ? selectedVehicle.label : 'Choose Vehicle Type'}
+                {vehcileTypes?.length == 0 ? "No Data" : selectedVehicle ? selectedVehicle.label : 'Choose Delivery Type'}
               </Text>
-              <MaterialIcons name="edit" size={wp(6)} color={COLORS[theme].primary} />
+              <MaterialIcons onPress={() => setSelectedVehicle(null)} name={selectedVehicle ? 'close' : "edit"} size={wp(6)} color={COLORS[theme].primary} />
             </TouchableOpacity>
-            {
+            {/* {
               !selectedVehicle?.value && (
-                <Text style={[poppins.semi_bold.h9, { color: COLORS[theme].validation, margin: wp(2) }]}>
-                  Please select a vehicle type to see the charges details.
+                <Text style={[poppins.semi_bold.h9, { color: COLORS[theme].validation, margin: wp(2), marginLeft: wp(4), fontSize: wp(2.1) }]}>
+                  Please select a Delivery type to see the charges details.
                 </Text>
               )
-            }
+            } */}
             <TouchableOpacity
               // onPress={() => navigation.navigate('SelectLocation')}
               style={[styles.vehicleSelctor, {
@@ -627,42 +624,40 @@ export default function CartList({ route }) {
                 />
               )}
             <View style={styles.detailsContainer}>
-              {
-                selectedVehicle?.value && cartSummary?.length != 0 &&
-                <Text style={[styles.detailsTitle, { color: COLORS[theme].primary }]}>
-                  Item Details
-                </Text>
-              }
-              {selectedVehicle?.value && Array.isArray(cartSummary) && cartSummary.length > 0 && cartSummary.map((detail, index) => (
-                <View key={Math.random().toString()} style={styles.detailsRow}>
-                  <Text style={[styles.detailLabel, { color: COLORS[theme].primary }]}>
-                    {formatCamelCase(detail?.label)}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={[styles.detailLabel, { color: COLORS[theme].primary, textDecorationLine: detail?.label == "Original Price" ? "line-through" : "none" }]}>
 
-                      ₹{detail.value}
+              {
+                // selectedVehicle?.value && 
+                Array.isArray(cartSummary) && cartSummary.length > 0 && cartSummary.map((detail, index) => (
+                  <View key={Math.random().toString()} style={styles.detailsRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS[theme].primary }]}>
+                      {formatCamelCase(detail?.label)}
                     </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[styles.detailLabel, { color: COLORS[theme].primary, textDecorationLine: detail?.label == "Original Price" ? "line-through" : "none" }]}>
+                        ₹{detail?.value}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))}
-              {selectedVehicle?.value && Array.isArray(cartSummary) && cartSummary.length > 0 && grandTotal !== undefined && grandTotal !== null && !isNaN(grandTotal) && (
-                <View style={styles.detailsRow}>
-                  <Text style={[styles.detailLabel, { color: COLORS[theme].primary }]}>
-                    {"Payable Amount"}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={[poppins.semi_bold.h5, styles.detailLabel, { color: COLORS[theme].primary }]}>
-                      ₹{grandTotal}
+                ))}
+              {
+                // selectedVehicle?.value &&
+                Array.isArray(cartSummary) && cartSummary.length > 0 && grandTotal !== undefined && grandTotal !== null && !isNaN(grandTotal) && (
+                  <View style={styles.detailsRow}>
+                    <Text style={[styles.detailLabel, { color: COLORS[theme].primary }]}>
+                      {"Payable Amount"}
                     </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Text style={[poppins.semi_bold.h5, styles.detailLabel, { color: COLORS[theme].primary }]}>
+                        ₹{grandTotal}
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
             </View>
             <SingleSelectModal
               visible={showVehicleModal}
               data={vehcileTypes} // [{ label: 'Bike', value: '1' }, ...]
-              title="Select Vehicle Type"
+              title="Select Type of Delivery"
               selectedValue={selectedVehicle?.value}
               onSelect={setSelectedVehicle}
               onDismiss={() => setShowVehicleModal(false)}
@@ -676,31 +671,33 @@ export default function CartList({ route }) {
               onDismiss={() => setshowCouponArr(false)}
             />
           </ScrollView>
-          {selectedVehicle?.value && (
-            <TouchableWithoutFeedback
-              onPress={() => setIsAccepted(!isAccepted)}
-            >
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                marginHorizontal: wp(4),
-                marginVertical: wp(2),
-              }}>
-                <MaterialIcons style={{
-                  marginRight: wp(2),
-                }} name={isAccepted ? "check-box" : 'check-box-outline-blank'} size={wp(6)} color={COLORS[theme].primary} />
-                {/* </View> */}
-                <Text style={{
-                  color: COLORS[theme].primary,
-                  fontSize: wp(2.5),
-                  maxWidth: wp(80),
-                  lineHeight: hp(2)
+          {
+            // selectedVehicle?.value &&
+            (
+              <TouchableWithoutFeedback
+                onPress={() => setIsAccepted(!isAccepted)}
+              >
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  marginHorizontal: wp(4),
+                  marginVertical: wp(2),
                 }}>
-                  {cdata?.acceptance || 'Terms & conditions accepted'}
-                </Text>
-              </View>
-            </TouchableWithoutFeedback>
-          )}
+                  <MaterialIcons style={{
+                    marginRight: wp(2),
+                  }} name={isAccepted ? "check-box" : 'check-box-outline-blank'} size={wp(6)} color={COLORS[theme].primary} />
+                  {/* </View> */}
+                  <Text style={{
+                    color: COLORS[theme].primary,
+                    fontSize: wp(2.5),
+                    maxWidth: wp(80),
+                    lineHeight: hp(2)
+                  }}>
+                    {cdata?.acceptance || 'Terms & conditions accepted'}
+                  </Text>
+                </View>
+              </TouchableWithoutFeedback>
+            )}
           {
             loading ?
               <ActivityIndicator color={COLORS[theme].accent} />
@@ -708,15 +705,30 @@ export default function CartList({ route }) {
               <TouchableOpacity
                 disabled={!isAccepted}
                 onPress={() => {
-                  isAccepted && selectedVehicle?.value &&
+                  isAccepted &&
+                    // selectedVehicle?.value &&
                     setshowConfirm(true)
                 }} style={[styles.payButton, {
-                  backgroundColor: !isAccepted || !selectedVehicle?.value ? COLORS[theme].cardBackground : COLORS[theme].accent
+                  backgroundColor: !isAccepted
+                    //  || !selectedVehicle?.value 
+                    ? COLORS[theme].cardBackground : COLORS[theme].accent
                 }]}>
-                <Text style={[poppins.semi_bold.h6, styles.payButtonText, {
+                <Text style={[poppins.regular.h6, styles.payButtonText, {
                   fontSize: !selectedVehicle?.value ? wp(4) : wp(4)
                 }]}>
-                  {!selectedVehicle?.value ? 'Select Vehicle to Pay' : `Pay ₹ ${grandTotal}`}
+                  {
+                    `Continue  `
+                  }
+                </Text>
+                <View style={{ backgroundColor: "#FFF", width: wp(0.5), height: "100%", }} />
+                <Text style={[poppins.semi_bold.h5, styles.payButtonText, {
+                  fontSize: !selectedVehicle?.value ? wp(4) : wp(4)
+                }]}>
+                  {
+                    // !selectedVehicle?.value ?
+                    //  'Select Vehicle to Pay'                    :
+                    `₹ ${grandTotal}`
+                  }
                 </Text>
               </TouchableOpacity>
           }
@@ -747,7 +759,7 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   price: { fontSize: wp(3), fontWeight: '700', marginRight: 6, color: '#000' },
   strikePrice: { fontSize: wp(3), color: '#999', textDecorationLine: 'line-through' },
-  qtyBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#EEE', borderRadius: 10, overflow: 'hidden' },
+  qtyBox: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: wp, overflow: 'hidden', backgroundColor: "#F1f1f1" },
   qtyBtn: { paddingHorizontal: 10, paddingVertical: 5 },
   qtyBtnText: { fontSize: 18, fontWeight: '700', color: '#000' },
   qtyValue: { width: 25, textAlign: 'center', fontSize: 15, fontWeight: '600', color: '#000' },
@@ -762,12 +774,12 @@ const styles = StyleSheet.create({
   payButton: {
     backgroundColor: '#00C2CB', paddingVertical: wp(2.5), borderRadius: wp(2),
     alignItems: 'center', marginTop: wp(1), marginBottom: wp(2), marginHorizontal: wp(4),
-    width: wp(70), alignSelf: "center"
+    width: wp(90), alignSelf: "center", flexDirection: "row", justifyContent: "space-around"
   }, payButtonText: { color: '#FFF', },
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   vehicleSelector: {
     flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', borderWidth: 1, borderColor: '#DDD',
+    justifyContent: 'space-between', borderWidth: 1, 
     borderRadius: wp(2), padding: wp(1), marginHorizontal: wp(2),
     marginTop: wp(3), paddingHorizontal: wp(3)
   },

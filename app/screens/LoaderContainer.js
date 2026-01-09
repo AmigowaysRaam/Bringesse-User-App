@@ -9,6 +9,8 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../resources/colors';
 import { hp, wp } from '../resources/dimensions';
+import LottieView from 'lottie-react-native';
+import { IMAGE_ASSETS } from '../resources/images';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -26,7 +28,6 @@ const SkeletonBlock = ({ width, height, borderRadius = 4, style = {}, pulseAnim,
     ]}
   />
 );
-
 const FullScreenLoader = () => {
   const { theme } = useTheme();
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
@@ -59,30 +60,20 @@ const FullScreenLoader = () => {
       style={[styles.container, { backgroundColor: COLORS[theme].background }]}
       contentContainerStyle={{ padding: wp(5) }}
     >
-      {/* Header */}
-      <View style={styles.row}>
-        {/* <SkeletonBlock
-          width={wp(14)}
-          height={wp(14)}
-          borderRadius={wp(7)}
-          pulseAnim={pulseAnim}
-          color={skeletonColor}
+      {/* <View style={{}}>
+        <LottieView
+          source={IMAGE_ASSETS.Christmas}
+          autoPlay
+          loop
+          speed={wp(0.5)}
+          resizeMode="stretch"
+          style={{
+            width: wp(90),
+            height: wp(80),
+          }}
         />
-        <View style={{ marginLeft: wp(4) }}>
-          <SkeletonBlock
-            width={wp(50)}
-            height={hp(2.5)}
-            pulseAnim={pulseAnim}
-            color={skeletonColor}
-          />
-          <SkeletonBlock
-            width={wp(30)}
-            height={hp(2)}
-            style={{ marginTop: hp(1) }}
-            pulseAnim={pulseAnim}
-            color={skeletonColor}
-          />
-        </View> */}
+      </View> */}
+      <View style={styles.row}>
         <SkeletonBlock
           width={wp(90)}
           height={hp(5)}
@@ -160,6 +151,7 @@ const FullScreenLoader = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#ccc",
   },
   row: {
     flexDirection: 'row',

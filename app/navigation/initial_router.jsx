@@ -27,6 +27,8 @@ import FoodDeliveryTrack from '../screens/FoodDeliveryTrack';
 import PaymentCheck from '../screens/tabs/menuScreen/PaymentCheck';
 import QuickShare from '../screens/QuickShare';
 import CustomerSupport from '../screens/CustomerSupport';
+import BookingsList from '../screens/BookingsList';
+import AccountManage from '../screens/AccountManage';
 
 const Stack = createNativeStackNavigator();
 const MyTheme = {
@@ -76,6 +78,7 @@ function InitialRouter() {
         <Stack.Screen name="PaymentCheck" component={PaymentCheck} />
         <Stack.Screen name="QuickShare" component={QuickShare} />
         <Stack.Screen name="CustomerSupport" component={CustomerSupport} />
+        <Stack.Screen name="AccountManage" component={AccountManage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

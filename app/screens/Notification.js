@@ -33,7 +33,16 @@ const Notification = () => {
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const limit = 10;
+  const [expandedIds, setExpandedIds] = useState([]);
 
+  const toggleExpand = (id) => {
+    setExpandedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
+    );
+  };
+  
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
@@ -121,28 +130,69 @@ const Notification = () => {
     return moment(dateStr).fromNow(); // e.g., "2 hours ago"
   };
 
-  const renderItem = ({ item }) => (
-    <View style={[styles.card, { backgroundColor: COLORS[theme].viewBackground }]}>
-      <View style={styles.iconContainer}>
-        <MaterialCommunityIcon
-          name="bell-ring"
-          size={wp(7)}
-          color={COLORS[theme].accent}
-        />
+
+  const renderItem = ({ item }) => {
+    const isExpanded = expandedIds.includes(item.notification_id);
+  
+    return (
+      <View style={[styles.card, { backgroundColor: COLORS[theme].viewBackground }]}>
+        <View style={styles.iconContainer}>
+          <MaterialCommunityIcon
+            name="bell-ring"
+            size={wp(7)}
+            color={COLORS[theme].accent}
+          />
+        </View>
+  
+        <View style={styles.textContainer}>
+          <Text
+            style={[
+              poppins.semi_bold.h8,
+              { color: COLORS[theme].textPrimary, textTransform: 'capitalize' },
+            ]}
+          >
+            {item?.notification_type}
+          </Text>
+  
+          {/* MESSAGE */}
+          <Text
+            style={[
+              poppins.semi_bold.h9,
+              { color: COLORS[theme].textPrimary, marginTop: wp(1) },
+            ]}
+            numberOfLines={isExpanded ? undefined : 2}
+          >
+            {item.message || 'You have a new notification.'}
+          </Text>
+  
+          {/* TOGGLE */}
+          {item?.message?.length > 80 && (
+            <Text
+              onPress={() => toggleExpand(item.notification_id)}
+              style={{
+                color: COLORS[theme].accent,
+                marginTop: wp(1),
+                fontSize: wp(3.5),
+              }}
+            >
+              {isExpanded ? 'Show Less' : 'Show More'}
+            </Text>
+          )}
+  
+          {/* DATE */}
+          <Text
+            style={[
+              poppins.regular.h8,
+              { color: COLORS[theme].textPrimary, marginTop: wp(1.5) },
+            ]}
+          >
+            {formatDate(item.date)}
+          </Text>
+        </View>
       </View>
-      <View style={styles.textContainer}>
-        <Text style={[poppins.semi_bold.h7, { color: COLORS[theme].textPrimary, textTransform: "capitalize" }]}>
-          {item?.notification_type}
-        </Text>
-        <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary, marginTop: wp(1) }]}>
-          {item.message || 'You have a new notification.'}
-        </Text>
-        <Text style={[poppins.regular.h8, { color: COLORS[theme].textPrimary, marginTop: wp(1.5) }]}>
-          {formatDate(item.date)}
-        </Text>
-      </View>
-    </View>
-  );
+    );
+  };
+  
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -182,7 +232,6 @@ const Notification = () => {
     </GestureHandlerRootView>
   );
 };
-
 const styles = StyleSheet.create({
   scrollContent: {
     paddingVertical: hp(2),
@@ -192,7 +241,7 @@ const styles = StyleSheet.create({
   },
   card: {
     flexDirection: 'row',
-    padding: wp(4),
+    padding: wp(3),
     borderRadius: wp(2),
     elevation: 2,
     shadowColor: '#000',

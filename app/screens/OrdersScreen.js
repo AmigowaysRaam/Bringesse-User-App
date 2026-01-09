@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   PanResponder,
-  View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator,
-  ToastAndroid,
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
   BackHandler,
+  Alert,
 } from 'react-native';
 import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import { hp, wp } from '../resources/dimensions';
@@ -136,14 +135,19 @@ const OrdersScreen = () => {
     try {
       const data = await fetchData('getvehiclecategories', 'GET', null, null);
       setVehcileCatgory(
-        data?.data?.result?.map(category => ({
-          label: category.name,
-          value: category._id,
-          image: category.image,
-          vehicles: category?.vehicles,
-          enableDropLocation: category?.enableDropLocation ?? true,
-        })) || []
+        data?.data?.result
+          ?.filter(category =>
+            !category?.name?.includes('Bike Delivery')
+          )
+          ?.map(category => ({
+            label: category.name,
+            value: category._id,
+            image: category.image,
+            vehicles: category?.vehicles,
+            enableDropLocation: category?.enableDropLocation ?? true,
+          })) || []
       );
+
       // console.log('Vehicle Categories', JSON.stringify(
       //   data?.data?.result?.map(category => ({
       //     label: category.name,
@@ -159,8 +163,6 @@ const OrdersScreen = () => {
 
 
   const getDriversData = async () => {
-    // console.log('FormSubmit', formValues);
-
     setLoading(true);  // Show loader when fetching data
     if (!formValues?.vehicleCategoryId || !formValues?.vehicleTypeId || !formValues?.pickupLocation?.lat) {
       setLoading(false);  // Show loader when fetching data
@@ -200,16 +202,14 @@ const OrdersScreen = () => {
     } catch (error) {
       console.error('Error fetching drivers:', error);
     } finally {
-      setLoading(false);  // Hide loader after data is fetched
+      setLoading(false);
     }
   };
-
   useFocusEffect(
     useCallback(() => {
       getHomePageData();
     }, [])
   );
-
   const renderDropdownField = (label, value, onPress, error, isRequired = true) => (
     <View style={styles.fieldContainer}>
       {renderLabel(label, isRequired)}
@@ -235,7 +235,6 @@ const OrdersScreen = () => {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
-
   const navigation = useNavigation();
   //enableDropLocation
   const handleBookNow = async () => {
@@ -247,14 +246,12 @@ const OrdersScreen = () => {
       pickup_location: formValues?.pickupLocation?.location,
       pickup_lat: formValues?.pickupLocation?.lat,
       pickup_lon: formValues?.pickupLocation?.lon,
-
       // ✅ If drop location is missing, use pickup location instead
       drop_location: formValues?.dropLocation?.location || formValues?.pickupLocation?.location,
       drop_lat: formValues?.dropLocation?.lat || formValues?.pickupLocation?.lat,
       drop_lon: formValues?.dropLocation?.lon || formValues?.pickupLocation?.lon,
       enableDropLocation: enableDropLocation,
     };
-
     setLoading(true);  // Show loader when fetching data
     try {
       const data = await fetchData('booktransport', 'POST', payLoad,
@@ -265,6 +262,7 @@ const OrdersScreen = () => {
         }
       );
       if (data?.status == true || data?.status == "true") {
+        // Alert.alert("", JSON.stringify(data, null, 2))
         showMessage({
           message: data.message,
           type: 'success',
@@ -317,9 +315,6 @@ const OrdersScreen = () => {
       },
     })
   ).current;
-
-
-
   return (
     <GestureHandlerRootView style={{ flex: 1, padding: wp(1), opacity: modalVisible ? 0.1 : 1 }}
       {...(!locationmodalVisible && !otherModal ? panResponder.panHandlers : {})}
@@ -335,7 +330,8 @@ const OrdersScreen = () => {
             style={[
               styles.tabButton,
               activeTab === route.key && {
-                borderColor: COLORS[theme].accent, borderBottomWidth: wp(1)
+                borderColor: COLORS[theme].accent, borderBottomWidth: wp(1),
+                borderEndWidth: wp(0.5), borderTopWidth: wp(0.3), borderStartWidth: wp(0.3)
               }
             ]}
           >
@@ -504,7 +500,7 @@ const styles = StyleSheet.create({
   tabButton: {
     paddingVertical: hp(0.5),
     width: wp(40),
-    alignItems: "center", borderRadius: wp(1)
+    alignItems: "center", borderRadius: wp(2)
   },
   activeTabButton: {
     borderBottomWidth: 2,
