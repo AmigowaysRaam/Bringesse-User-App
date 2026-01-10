@@ -22,8 +22,6 @@ import messaging from '@react-native-firebase/messaging';
 import ReviewCard from './ReviewCard';
 import ReactNativeBlobUtil from 'react-native-blob-util';
 import FileViewer from 'react-native-file-viewer';
-
-
 const ORDER_STEPS = ['pending', 'processing', 'ready', 'delivered'];
 const OrderDetail = ({ route }) => {
   const { theme } = useTheme();
