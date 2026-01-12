@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyCXxApzGkaXoZGGPX5EO1DTaG1qlg9Cbg4</string>
+	<string>AIzaSyD6eckEz83AaLIOfd74mH_MbOC7dZqUjq0</string>
 	<key>GCM_SENDER_ID</key>
-	<string>236810268956</string>
+	<string>989733009995</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.gymapp.live</string>
+	<string>com.bringesse.deliverypartner</string>
 	<key>PROJECT_ID</key>
-	<string>thundersgym-70d62</string>
+	<string>bringessedeliverypartner</string>
 	<key>STORAGE_BUCKET</key>
-	<string>thundersgym-70d62.firebasestorage.app</string>
+	<string>bringessedeliverypartner.firebasestorage.app</string>
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:236810268956:ios:42d5811716884f0d450ad9</string>
+	<string>1:989733009995:ios:b5810854fa0b5523996bce</string>
 </dict>
 </plist>

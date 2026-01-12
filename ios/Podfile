@@ -14,23 +14,27 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
+target 'bringesse' do
+  # React Native Maps dependencies
+  rn_maps_path = '../node_modules/react-native-maps'
+  pod 'react-native-google-maps', :path => rn_maps_path
+  pod 'GoogleMaps'
+  pod 'Google-Maps-iOS-Utils'
 
-target 'bringesseUser' do
+  # ----------------------
+  # Firebase with modular headers
+  # ----------------------
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+
   config = use_native_modules!
 
-  use_frameworks! :linkage => :static
-  $RNFirebaseAsStaticFramework = true
-  
   use_react_native!(
     :path => config[:reactNativePath],
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
-
-  target 'bringesseUserTests' do
-    inherit! :complete
-    # Pods for testing
-  end
 
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
@@ -40,5 +44,32 @@ target 'bringesseUser' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Remove libPods-bringesse.a reference that causes linker errors
+    # In RN 0.79, pods are linked individually via xcconfig, not as a combined library
+    project_path = File.join(__dir__, 'bringesse.xcodeproj', 'project.pbxproj')
+    if File.exist?(project_path)
+      project_content = File.read(project_path)
+      original_content = project_content.dup
+      
+      # Remove all lines containing libPods-bringesse.a references
+      lines = project_content.lines
+      filtered_lines = lines.reject do |line|
+        line.include?('libPods-bringesse.a')
+      end
+      
+      if filtered_lines.length < lines.length
+        File.write(project_path, filtered_lines.join)
+        puts "✅ Removed libPods-bringesse.a references from project.pbxproj".green
+      end
+    end
+    
+    # Hyper SDK post_install script
+    fuse_path = "./Pods/HyperSDK/Fuse.rb"
+    clean_assets = false # Pass true to re-download all the assets
+    if File.exist?(fuse_path)
+      if system("ruby", fuse_path.to_s, clean_assets.to_s)
+      end
+    end
   end
 end
