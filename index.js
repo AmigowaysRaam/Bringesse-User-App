@@ -1,12 +1,14 @@
 import 'react-native-gesture-handler';
 import messaging from '@react-native-firebase/messaging';
 import notifee from '@notifee/react-native';
-import { AppRegistry } from 'react-native';
-import { name as appName } from './app.json';
+import { AppRegistry, Platform } from 'react-native';
+// import { name as appName } from './app.json';
 import App from './App';
 if (__DEV__) {
   require('./app/debugger/ReactotronConfig');
 }
+const appName = Platform.OS === 'ios' ? 'bringesse' : 'bringesseUser';
+
 // 👇 Background message handler must be declared outside the component
 messaging().setBackgroundMessageHandler(async remoteMessage => {
   try {
