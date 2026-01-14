@@ -1,5 +1,6 @@
 # Node.js
 node_modules/
+.yarn/
 
 # React Native
 android/.gradle/
@@ -8,6 +9,7 @@ android/build/
 ios/Pods/
 ios/build/
 ios/.vscode/
+ios/.xcode.env.local
 
 # React Native Packager
 .expo/

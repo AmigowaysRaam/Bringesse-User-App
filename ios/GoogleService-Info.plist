@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.bringesse.deliverypartner</string>
+	<string>bringesse</string>
 	<key>PROJECT_ID</key>
 	<string>bringessedeliverypartner</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:989733009995:ios:b5810854fa0b5523996bce</string>
+	<string>1:989733009995:ios:5d1191a72b0e548d996bce</string>
 </dict>
 </plist>

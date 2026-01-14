@@ -576,8 +576,8 @@ export default function CartList({ route }) {
               onPress={() => {
                 setShowVehicleModal(true);
               }}
-              style={[styles.vehicleSelector,{
-                borderColor: theme == 'dark'? '#555' : '#DDD'
+              style={[styles.vehicleSelector, {
+                borderColor: theme == 'dark' ? '#555' : '#DDD'
               }]}
             >
               <Text style={[poppins.regular.h7, styles.vehicleText, { color: COLORS[theme].primary }]}>
@@ -606,8 +606,9 @@ export default function CartList({ route }) {
                 <Text style={[poppins.semi_bold.h9, { color: COLORS[theme].primary, maxWidth: wp(80), fontSize: wp(2.5) }]}>
                   {'Delivery Address'}
                 </Text>
-                <Text style={[poppins.regular.h9, { color: COLORS[theme].primary, maxWidth: wp(80), fontSize: wp(2.5) }]}>
-                  {profileDetails?.primary_address?.location}
+                <Text style={[poppins.regular.h9, { color: COLORS[theme].primary, maxWidth: wp(80), fontSize: wp(2.8) }]}>
+                  {profileDetails.primary_address?.note+ ' , '+profileDetails.primary_address.address + ' , ' + profileDetails?.primary_address?.location}
+                  {/* {JSON.stringify(profileDetails?.primary_address)} */}
                 </Text>
               </View>
               <MaterialIcons name="home" size={wp(7)} color={COLORS[theme].primary} />
@@ -779,7 +780,7 @@ const styles = StyleSheet.create({
   centerScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   vehicleSelector: {
     flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', borderWidth: 1, 
+    justifyContent: 'space-between', borderWidth: 1,
     borderRadius: wp(2), padding: wp(1), marginHorizontal: wp(2),
     marginTop: wp(3), paddingHorizontal: wp(3)
   },
