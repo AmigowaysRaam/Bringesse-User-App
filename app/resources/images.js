@@ -18,10 +18,10 @@ const IMAGE_ASSETS = {
   shopclosed:require('../assets/images/shopclosed.png'),
   bringesUser:require('../assets/images/user.png'),
   seller:require('../assets/images/seller.jpg'),
-  Christmas:require('../assets/lottie/MerryChristmas.json'),
-  reinDer:require('../assets/lottie/Reindeer.json'),
-  chritmasCap:require('../assets/images/chritmasCap.png'),
-  ChristmasS:require('../assets/lottie/Christmas.json'),
+  // Christmas:require('../assets/lottie/MerryChristmas.json'),
+  // reinDer:require('../assets/lottie/Reindeer.json'),
+  // chritmasCap:require('../assets/images/chritmasCap.png'),
+  ChristmasS:require('../assets/lottie/HappyPongal.json'),
 
   
 
