@@ -23,52 +23,64 @@ import DeviceInfo from 'react-native-device-info';
 import VersionCheck from 'react-native-version-check';
 
 // --- Logout Section ---
-const LogoutSection = ({ profileD, accessToken }) => {
+const LogoutSection = ({ profileD, accessToken, }) => {
   const { theme } = useTheme();
   const navigation = useNavigation();
   const { t } = useTranslation();
+  const profile = useSelector(state => state.Auth.profile);
   const handleLogout = async (profileD) => {
-    // Alert.alert(accessToken);
-    // return;
-    Alert.alert(
-      t('Confirm Logout'),
-      t('Are you sure you want to logout?'),
-      [
-        { text: t('cancel'), style: 'cancel' },
-        {
-          text: t('yes'),
-          onPress: async () => {
-            try {
-              const data = await fetchData('logout/', 'POST', {
+  Alert.alert(
+    t('Confirm Logout'),
+    t('Are you sure you want to logout?'),
+    [
+      { text: t('cancel'), style: 'cancel' },
+      {
+        text: t('yes'),
+        onPress: async () => {
+          try {
+            const data = await fetchData(
+              'logout/',
+              'POST',
+              { user_id: profileD?.user_id },
+              {
+                Authorization: accessToken,
                 user_id: profileD?.user_id,
-              }, {
-                Authorization: `${accessToken}`,
-                user_id: profileD.user_id,
                 type: 'user',
-              });
-              if (data?.status == 'true') {
-                AsyncStorage.clear();
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: 'GetStartedScreen' }],
-                });
               }
-            } catch (error) {
-              console.error('profile API Error:', error);
-            } finally {
-              // setLoading(false);
+            );
+
+            if (data?.status === 'true') {
+             await AsyncStorage.multiRemove([
+  `copilot_home_seen_${profileD?.user_id}`, //  USER BASED
+  'access_token',
+  'user_data',
+  'refresh_token',
+]);
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'GetStartedScreen' }],
+              });
             }
-            AsyncStorage.clear();
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'GetStartedScreen' }],
-            });
-          },
+          } catch (error) {
+            console.error('Logout API Error:', error);
+          }finally{
+             await AsyncStorage.multiRemove([
+  `copilot_home_seen_${profileD?.user_id}`, //  USER BASED
+  'access_token',
+  'user_data',
+  'refresh_token',
+]);
+ navigation.reset({
+                index: 0,
+                routes: [{ name: 'GetStartedScreen' }],
+              });
+          }
         },
-      ],
-      { cancelable: true }
-    );
-  };
+      },
+    ],
+    { cancelable: true }
+  );
+};
 
   return (
     <View style={{ backgroundColor: COLORS[theme].viewBackground }}>

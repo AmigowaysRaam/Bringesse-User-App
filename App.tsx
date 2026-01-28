@@ -36,6 +36,7 @@ import { I18nextProvider, useTranslation } from 'react-i18next';
 import i18n from './app/config/i18';
 import HyperSdkReact from 'hyper-sdk-react';
 import { NativeEventEmitter, NativeModules } from 'react-native';
+import {CopilotProvider} from 'react-native-copilot'
 
 if (Text.defaultProps == null) {
   Text.defaultProps = {};
@@ -261,11 +262,14 @@ const AppContainer = () => {
               paddingBottom: insets.bottom,
             }}
           >
+             <CopilotProvider overlay='svg'  animated  labels={{next:'Next' , finish:'Got it'}}
+                 tooltipStyle={{borderRadius:12,padding:15}} stepNumberComponent={()=>null}> 
             <Provider store={store}>
               <I18nextProvider i18n={i18n}>
                 <InitialRouter />
               </I18nextProvider>
             </Provider>
+            </CopilotProvider>
           </View>
         </LanguageProvider>
       </PaperProvider>

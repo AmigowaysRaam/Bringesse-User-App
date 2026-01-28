@@ -17,6 +17,8 @@ import ProductVariantSelector from './ProductVariantSelector';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Storeloader from './Storeloader';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 const RevenueScreen = () => {
   const { theme } = useTheme();
   const profile = useSelector(state => state.Auth.profileDetails);
@@ -28,13 +30,15 @@ const RevenueScreen = () => {
   const [loading, setLoading] = useState(false);
   const [variantModalVisible, setVariantModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [recentSearches,setRecentSearches] = useState([]);
   // Handle search input
   const handleSearch = (text) => {
     setSearchText(text);
-    if (text.length < 3 && text.length > 0) {
+    if(text.length === 0){
+      fetchStores(0,'');
+    }
+    if ( text.length >= 2) {
       fetchStores(0, text);
-    } else if (text.length === 0) {
-      fetchStores(0, '');
     }
   };
   const [refreshing, setRefreshing] = useState(false);
@@ -50,50 +54,53 @@ const RevenueScreen = () => {
 
   // Fetch stores and flatten products
   const fetchStores = useCallback(
-    async (pageNumber = 0, searchValue = searchText) => {
-      if (!accessToken || !profile?.user_id) return;
+  async (pageNumber = 0, searchValue = '') => {
+    if (!accessToken || !profile?.user_id) return;
 
-      const payload = {
-        user_id: profile.user_id,
-        offset: pageNumber,
-        limit: 10,
-        search: searchValue,
-        lat: profile?.primary_address?.lat,
-        lon: profile?.primary_address?.lon,
-        type: 'product',
-      };
-      const headers = {
-        Authorization: `${accessToken}`,
+    const payload = {
+      user_id: profile.user_id,
+      offset: pageNumber,
+      limit: 10,
+      search: searchValue,
+      lat: profile?.primary_address?.lat,
+      lon: profile?.primary_address?.lon,
+      type: 'product',
+    };
+
+    try {
+      setLoading(true);
+      const data = await fetchData('homesearch', 'POST', payload, {
+        Authorization:` ${accessToken}`,
         user_id: profile.user_id,
         type: 'user',
-      };
-      try {
-        setLoading(true);
-        const data = await fetchData('homesearch', 'POST', payload, headers);
-        if (data?.status === 'true') {
-          // Flatten all products from all stores
-          const allProducts = data.product_list?.reduce((acc, store) => {
-            const productsWithStore = store.item_list?.map(product => ({
+      });
+
+      if (data?.status === 'true') {
+        const allProducts = data.product_list?.reduce((acc, store) => {
+          const productsWithStore =
+            store.item_list?.map(product => ({
               ...product,
               store_id: store.store_id,
               store_name: store.name,
             })) || [];
-            return [...acc, ...productsWithStore];
-          }, []);
-          // Alert.alert('prod',JSON.stringify(allProducts[0]?.variant_list,null,2))
-          setProductData(allProducts || []);
-        } else {
-          setProductData([]);
-        }
-      } catch (err) {
-        console.error('Fetch Error:', err);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [accessToken, profile?.user_id, searchText]
-  );
+          return [...acc, ...productsWithStore];
+        }, []);
 
+        setProductData(allProducts || []);
+
+
+      } else {
+        setProductData([]);
+
+      }
+    } catch (err) {
+      console.error('Fetch Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  },
+  [accessToken, profile?.user_id, searchText]
+);
   // Fetch cart data
   const fetchCartCount = async () => {
     if (!accessToken || !profile?.user_id || !profile?.primary_address?.lat) return;
@@ -185,6 +192,45 @@ const RevenueScreen = () => {
   if (!loading) {
     <Storeloader />
   }
+
+// recent search
+
+useEffect(()=>{
+  loadRecentSearch();
+},[]);
+
+const loadRecentSearch = async() =>{
+  const save = await AsyncStorage.getItem('recentSearches');
+  if(save){
+    setRecentSearches(JSON.parse(save));
+  }
+};
+
+const saveRecentSearch = async (text) => {
+    const keyword = text.toLowerCase().trim();
+    if(keyword.length < 3) return;
+
+    let updated = [
+      keyword,
+      ...recentSearches.filter((item) => item !== keyword),
+    ];
+
+    updated = updated.slice(0, 5); // max 5
+
+    setRecentSearches(updated);
+    await AsyncStorage.setItem(
+      "recentSearches",
+      JSON.stringify(updated)
+    );
+  };
+
+  const clearRecent = async () => {
+    await AsyncStorage.removeItem("recentSearches");
+    setRecentSearches([]);
+  };
+
+
+
   // Product Card for grid
   const ProductCard = ({ product }) => {
     const inCart = isProductInCart(product);
@@ -199,6 +245,9 @@ const RevenueScreen = () => {
         disabled={isOutOfStock}
         style={[styles.productCard, { backgroundColor: COLORS[theme].background }]}
         onPress={() => {
+          if(searchText.length >= 3){
+            saveRecentSearch(product.name)
+          }
           if (inCart) {
             ToastAndroid.show('Product already in cart', ToastAndroid.SHORT);
           } else if (product.variant_available === 'true') {
@@ -261,7 +310,6 @@ const RevenueScreen = () => {
           </Text>
           {inCart && <Text style={{ color: COLORS[theme].accent, marginTop: wp(1) }}>Already in Cart</Text>}
         </View>
-
         {/* Variant or Arrow */}
         {product?.variant_available === 'true' && !inCart && (
           <View style={{ flexDirection: "row", alignItems: 'center', marginTop: wp(1), opacity: isOutOfStock ? 0.2 : 1 }}>
@@ -273,9 +321,34 @@ const RevenueScreen = () => {
             />
           </View>
         )}
+      
       </Pressable>
     );
   };
+ const getSortedProducts = () => {
+  if (searchText.length < 0 || recentSearches.length === 0) {
+    return productData;
+  }
+
+  const recentProducts = [];
+  const otherProducts = [];
+
+  productData.forEach(product => {
+    const name = product.name?.toLowerCase() || '';
+
+    const matchedKeyword = recentSearches.find(keyword =>
+      name.startsWith(keyword) || name.includes(keyword)
+    );
+
+    if (matchedKeyword) {
+      recentProducts.push(product);
+    } else {
+      otherProducts.push(product);
+    }
+  });
+
+  return [...recentProducts, ...otherProducts ];
+};
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: COLORS[theme].background }}>
       <HeaderBar title="Explore Products" showBackArrow />
@@ -283,10 +356,53 @@ const RevenueScreen = () => {
         <CommonSearchContainer
           placeholder="Search Products..."
           onSearch={handleSearch}
+          onSubmit={(text)=>{
+            setSearchText(text)
+            if ( text.length >= 3) {
+              saveRecentSearch(text)
+            fetchStores(0, text);
+    }
+          }}
         />
+        {searchText.length === 0 && recentSearches.length > 0 && (
+  <View style={styles.recentContainer}>
+    <View style={styles.recentHeader}>
+      <Text style={[poppins.semi_bold.h7, { color: COLORS[theme].textPrimary }]}>
+        Recent Searches
+      </Text>
+      <Pressable onPress={clearRecent}>
+        <Text style={{ color: COLORS[theme].accent }}>Clear</Text>
+      </Pressable>
+    </View>
+
+
+      {recentSearches.map((item, index) => (
+        <Pressable
+          key={index}
+          style={styles.recentItem}
+          onPress={() => {
+            setSearchText(item);
+            fetchStores(0, item);
+          }}
+        >
+          <MaterialCommunityIcons
+            name="history"
+            size={wp(6)}
+            color={COLORS[theme].textPrimary}
+          />
+          <Text
+            style={[poppins.regular.h8, { marginLeft: wp(2),marginRight:wp(0), color: COLORS[theme].textPrimary }]}
+          >
+            {item}
+          </Text>
+          {/* <MaterialCommunityIcons name='chevron-right' size={wp(6)} color={COLORS[theme].textPrimary}/> */}
+        </Pressable>
+      ))}
+  </View>
+)}
       </View>
       {
-        !profile?.primary_address || Object.keys(profile?.primary_address).length == 0 &&
+        !profile?.primary_address || Object.keys(profile?.primary_address).length == 0 && 
         (
           <View
             style={{
@@ -311,9 +427,9 @@ const RevenueScreen = () => {
         <FlatList
           refreshing={refreshing}
           onRefresh={onRefresh}
-          data={productData}
+          data={getSortedProducts()}
           keyExtractor={(item, index) => item.item_id || index.toString()}
-          renderItem={({ item }) => <ProductCard product={item} />}
+          renderItem={({ item }) => <ProductCard  product={item} />}
           numColumns={2}
           columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: wp(3) }}
           contentContainerStyle={{ paddingBottom: hp(12), paddingTop: wp(2) }}
@@ -376,6 +492,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingVertical: hp(0.5),
     paddingHorizontal: wp(3), borderRadius: wp(2),
   },
+ recentContainer: {
+  paddingHorizontal: wp(4),
+  paddingBottom: hp(1),
+  marginTop:hp(2),
+},
+
+recentHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginBottom: hp(2),
+},
+
+// recentList: {
+//   flexDirection: 'row',
+//   flexWrap: 'wrap',
+// },
+
+recentItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  // paddingHorizontal: wp(3),
+  paddingVertical: hp(1),
+  // borderRadius: wp(5),
+  // borderWidth: 1,
+  // borderColor: '#ccc',
+  // marginRight: wp(2),
+  // marginBottom: wp(2),
+},
 });
 
 export default RevenueScreen;
