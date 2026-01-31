@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback,useContext } from 'react';
 import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
   Image, TouchableOpacity, ToastAndroid, Pressable, ScrollView,
@@ -18,6 +18,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Storeloader from './Storeloader';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WishlistContext } from '../context/WishlistContext';
 
 const RevenueScreen = () => {
   const { theme } = useTheme();
@@ -31,6 +32,7 @@ const RevenueScreen = () => {
   const [variantModalVisible, setVariantModalVisible] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [recentSearches,setRecentSearches] = useState([]);
+       const { isWishlisted, removeFromWishlist, addToWishlist } = useContext(WishlistContext);
   // Handle search input
   const handleSearch = (text) => {
     setSearchText(text);
@@ -257,6 +259,23 @@ const saveRecentSearch = async (text) => {
           }
         }}
       >
+                                  {/* <TouchableOpacity style={styles.icon}
+                                         onPress={() =>
+                                         isWishlisted(product.item_id)
+                                          ? removeFromWishlist(product.item_id)
+                                         : addToWishlist({
+                                                          ...product,
+                                                          store_id: product.store_id,
+                                                          image:product.image_url ||product.image
+                                         })
+                                         }
+                                         >
+                  <MaterialCommunityIcons
+                     name={isWishlisted(product.item_id) ? "heart" : "heart-outline"}
+                     size={wp(5)}
+                     color={isWishlisted(product.item_id) ? "red" : "#333"}
+                 />
+                   </TouchableOpacity>  */}
         {/* Out of Stock Overlay */}
 
         {isOutOfStock && (
@@ -508,6 +527,15 @@ recentHeader: {
 //   flexDirection: 'row',
 //   flexWrap: 'wrap',
 // },
+  icon:{
+    position: "absolute",
+    top:wp(4),
+    right: wp(3),
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: wp(1),
+    zIndex: 10,
+  },
 
 recentItem: {
   flexDirection: 'row',

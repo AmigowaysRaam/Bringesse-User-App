@@ -17,6 +17,7 @@ import ProductImageCarousel from "../ProductImageCarousel";
 import LinearGradient from "react-native-linear-gradient";
 import LoaderView from "../../components/loader";
 import LoaderCart from "../LoaderCart";
+import { WishlistContext } from "../../context/WishlistContext";
 
 const ProductListScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -33,6 +34,7 @@ const ProductListScreen = ({ route }) => {
   const profileDetails = useSelector(state => state.Auth.profileDetails);
   const accessToken = useSelector(state => state.Auth.accessToken);
   const { theme } = useTheme();
+  const { isWishlisted, removeFromWishlist, addToWishlist } = useContext(WishlistContext);
   useEffect(() => {
     getStoreDetails();
   }, []);
@@ -300,6 +302,23 @@ const ProductListScreen = ({ route }) => {
                       borderRadius: wp(2),
                     }]}
                   >
+     <TouchableOpacity style={styles.icon}
+    onPress={() =>
+    isWishlisted(item.item_id)
+      ? removeFromWishlist(item.item_id)
+      : addToWishlist({
+  ...item,
+  store_id: storeId,
+  image:item.image_url || item.image})
+
+  }
+ >
+                  <MaterialCommunityIcon
+    name={isWishlisted(item.item_id) ? "heart" : "heart-outline"}
+    size={wp(5)}
+    color={isWishlisted(item.item_id) ? "red" : "#333"}
+                              />
+                    </TouchableOpacity>
                     <View
                       style={{ flexDirection: "row" }}>
                       <View style={{ flex: 1, marginLeft: wp(2), flexDirection: "row", justifyContent: "space-between" }}>
@@ -307,6 +326,7 @@ const ProductListScreen = ({ route }) => {
                           <Text style={[styles.productName, {
                             color: COLORS[theme].textPrimary
                           }]} numberOfLines={1}>{item.name.length > 15 ? item.name.substring(0, 8) + '...' : item.name}</Text>
+                          {/* <Text>{JSON.stringify(item,null,2)}</Text> */}
                         </View>
                         <View style={{position:"absolute", marginLeft:wp(34),zIndex:10}}>
                           <MaterialCommunityIcon name="chevron-right" size={wp(8)} color={COLORS[theme].textPrimary} />

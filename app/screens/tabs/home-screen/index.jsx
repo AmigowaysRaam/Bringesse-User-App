@@ -298,6 +298,7 @@ useEffect(() => {
         </WalkthroughableView>
       </CopilotStep>
               <SearchContainer banner={homePageData} />
+              <CarouselData banner={homePageData}/>
       <CopilotStep
         text="Search nearby stores"
         order={1}
@@ -306,7 +307,6 @@ useEffect(() => {
            <CategoryList  banner={homePageData}/>
         </WalkthroughableView>
       </CopilotStep>
-         <CarouselData banner={homePageData}/>
       <CopilotStep
         text="Browse stores"
         order={2}

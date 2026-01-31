@@ -213,7 +213,7 @@ const MoreScreen = () => {
       () => {
         navigation?.navigate(navigationPath)
       }
-    } style={{ backgroundColor: COLORS[theme].viewBackground }}>
+    } style={{ backgroundColor: COLORS[theme].viewBackground}}>
       <View style={sectionRow}>
         <View style={leftRow}>
           <MaterialCommunityIcon
@@ -250,6 +250,7 @@ const MoreScreen = () => {
           }}>
           {/* <SectionItem icon="trackpad-lock" navigation={navigation} label="Payment screen" navigationPath='PaymentCheck' /> */}
           <SectionItem icon="cart" navigation={navigation} label="Orders History" navigationPath='OrdersHistory' />
+          <SectionItem icon="heart" navigation={navigation} label="Wishlist" navigationPath='Wishlist' />
           {/* <SectionItem icon="archive-star" navigation={navigation} label="reviews" navigationPath='TermsAndCondtions' /> */}
           <SectionItem icon="shield-check" navigation={navigation} label="Terms and Conditions" navigationPath='TermsAndCondtions' />
           <SectionItem icon="trackpad-lock" navigation={navigation} label="Privacy and Policy" navigationPath='PrivacyandPolicy' />
