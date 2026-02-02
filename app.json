@@ -1,4 +1,5 @@
 {
   "name": "bringesseUser",
-  "displayName": "Bringesse User Application"
+  "displayName": "Bringesse User Application",
+  "ios":"bringesse"
 }
