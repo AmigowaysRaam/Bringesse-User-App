@@ -238,6 +238,7 @@ export default function AddAddressScreen() {
                 address_type: addressType,
                 lat: region.latitude,
                 lon: region.longitude,
+                note:landmark,
                 ...(isEdit && { address_id: addressData?.id }),
             };
 

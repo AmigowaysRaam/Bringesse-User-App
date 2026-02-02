@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef,useContext } from 'react';
 import {
     View,
     StyleSheet,
@@ -24,14 +24,17 @@ import { COLORS } from '../resources/colors';
 import { useTheme } from '../context/ThemeContext';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { WishlistContext } from '../context/WishlistContext';
+import { useRoute } from '@react-navigation/native';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-const ProductDetailModal = ({ productData, close, addCart }) => {
+const ProductDetailModal = ({ productData, close, addCart,storeId }) => {
     const { theme } = useTheme();
     const scrollRef = useRef(null);
     const [activeIndex, setActiveIndex] = useState(0);
     const [mediaItems, setMediaItems] = useState([]);
+     const { isWishlisted, removeFromWishlist, addToWishlist } = useContext(WishlistContext);
 
     const modalOpacityAnim = useRef(new Animated.Value(0)).current;
     const modalTranslateYAnim = useRef(new Animated.Value(50)).current;
@@ -159,7 +162,7 @@ const ProductDetailModal = ({ productData, close, addCart }) => {
     };
 
     const handleCart = (variant, index) => {
-        addCart(productData, variant, index);
+        addCart(productData, variant, index ,storeId);
         handleClose();
     };
 
@@ -193,6 +196,23 @@ const ProductDetailModal = ({ productData, close, addCart }) => {
                         >
                             {/* Header */}
                             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                   {/* <TouchableOpacity style={styles.icon}
+                                         onPress={() =>
+                                         isWishlisted(productData.item_id)
+                                          ? removeFromWishlist(productData.item_id)
+                                         : addToWishlist({
+                                                          ...productData,
+                                                          store_id:storeId
+
+                                         })
+                                         }
+                                         >
+                  <MaterialCommunityIcons
+                     name={isWishlisted(productData.item_id) ? "heart" : "heart-outline"}
+                     size={wp(5)}
+                     color={isWishlisted(productData.item_id) ? "red" : "#333"}
+                 />
+                   </TouchableOpacity> */}
                                 <Text
                                     style={[
                                         poppins.medium.h6,
@@ -456,7 +476,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: hp(0.5),
     },
-
+  icon:{
+    position: "absolute",
+    top:wp(7),
+    right: wp(8),
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: wp(1),
+    zIndex: 1,
+  },
 });
 
 export default ProductDetailModal;

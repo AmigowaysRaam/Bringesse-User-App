@@ -1,7 +1,7 @@
 import {
   StyleSheet, Text, TouchableOpacity, View, Animated,
 } from 'react-native';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef,useContext } from 'react';
 import { hp, wp } from '../../resources/dimensions';
 import { poppins } from '../../resources/fonts';
 import { useNavigation } from '@react-navigation/native';
@@ -9,12 +9,14 @@ import { COLORS } from '../../resources/colors';
 import Icons from 'react-native-vector-icons/Ionicons';
 import { commonStyles } from '../../resources/styles';
 import { useTheme } from '../../context/ThemeContext';
+import { WishlistContext } from '../../context/WishlistContext';
 
 const HeaderBar = ({
-  showBackArrow = false, title = '', subMenu = '', showRightArrow = '',
+  showBackArrow = false, title = '', subMenu = '', showRightArrow = '',wishlist,
   onRightArrowPress = () => { }, }) => {
     const navigation = useNavigation();
   const { theme } = useTheme();
+  const {wishlistItems} = useContext(WishlistContext)
   // 🔹 Animation value
   const slideAnim = useRef(new Animated.Value(-hp(10))).current;
 
@@ -114,6 +116,21 @@ const HeaderBar = ({
             />
           </TouchableOpacity>
         )}
+         { wishlist && (
+           <TouchableOpacity
+           onPress={()=>navigation.navigate('Wishlist')}
+           style={styles.rightButton}>
+            <Icons name='heart-outline'
+             color={COLORS[theme].textPrimary}
+              size={wp(6)}/>
+              { wishlistItems.length > 0 &&
+                                <View style={styles.cartCountBadge}>
+                                              <Text style={styles.cartCountText}>{wishlistItems.length}</Text>
+                                            </View>
+              }
+           </TouchableOpacity>
+         )}
+
       </View>
     </Animated.View>
   );
@@ -138,5 +155,15 @@ const styles = StyleSheet.create({
     padding: wp(1),
     marginLeft: wp(2),
   },
+        cartCountBadge: {
+          position: 'absolute',
+          top: -wp(1), right: -wp(1),
+          backgroundColor: '#ff0000', borderRadius: wp(2.5),
+          width: wp(4), height: wp(4),
+          alignItems: 'center', justifyContent: 'center',
+        }, cartCountText: {
+          color: '#fff',
+          fontSize: wp(3),
+        }
 });
 export default HeaderBar;

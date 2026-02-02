@@ -100,8 +100,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mediaWrapper: {
-    width: wp(90),
-    height: wp(40),
+    width: wp(37),
+    height: wp(20),
     borderRadius: wp(1),
     overflow: 'hidden',
     marginRight: wp(2),
