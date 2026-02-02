@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { fetchData } from '../api/api';
 import { useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import FlashMessage, { showMessage } from 'react-native-flash-message';
 
 const AccountManage = () => {
   const { theme } = useTheme();
@@ -30,7 +31,12 @@ const AccountManage = () => {
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const profileD = useSelector(state => state.Auth.profile);
+  const siteDetails = useSelector(state => state.Auth.siteDetails);
+
   const navigation = useNavigation();
+  useEffect(()=>{
+    // showMessage({ message: 'Phone number verified.', type: 'success' });
+  },[])
   const handleDeactivate = async () => {
     if (!profileD?.user_id) return;
     try {
@@ -40,6 +46,7 @@ const AccountManage = () => {
         userId: profileD?.user_id, status: 2
       }, null);
       // Alert.alert('Account Deactivated', JSON.stringify(data));
+      
       if (data?.status == true) {
         AsyncStorage.clear();
         navigation.reset({
@@ -47,6 +54,7 @@ const AccountManage = () => {
           routes: [{ name: 'GetStartedScreen' }],
         });
         ToastAndroid.show(data?.message, ToastAndroid.SHORT);
+    showMessage({ message:data?.message, type: 'success' });
       }
       else {
         ToastAndroid.show('Failed to fetch profile data', ToastAndroid.SHORT);
@@ -62,7 +70,9 @@ const AccountManage = () => {
     <GestureHandlerRootView
       style={{ flex: 1, backgroundColor: COLORS[theme].background }}
     >
-      <HeaderBar title="Account Management" showBackArrow />
+            <FlashMessage style={{zIndex:111111}} position="top" />
+
+      <HeaderBar title="Account Deletion" showBackArrow />
       {loading ? (
         <View style={styles.loader}>
           <ActivityIndicator size="large" color={COLORS[theme].primary} />
@@ -81,15 +91,12 @@ const AccountManage = () => {
                 color={COLORS[theme].primary}
               />
             </View>
-
             <Text style={[poppins.semi_bold.h7, styles.title, { color: COLORS[theme].primary }]}>
-              Deactivate Account
+               Account Delete
             </Text>
-
             <Text style={[styles.desc, { color: COLORS[theme].primary }]}>
-              Deactivating your account will disable your profile and you will
-              no longer receive notifications or access services. This action
-              can be reversed by contacting support.
+             {siteDetails?.account_delete}
+             {/* {JSON.stringify(siteDetails,null,2)} */}
             </Text>
             <TouchableOpacity
               style={[styles.deactivateBtn, { backgroundColor: COLORS[theme].primary }]}
@@ -98,13 +105,12 @@ const AccountManage = () => {
             >
               <Text style={[styles.btnText, {
                 color: COLORS[theme].background
-              }]}>Deactivate Account</Text>
+              }]}>{siteDetails?.deletbtntext}</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       )}
 
-      {/* Confirmation Modal */}
       <Modal
         transparent
         visible={showConfirm}
@@ -124,8 +130,7 @@ const AccountManage = () => {
             </Text>
 
             <Text style={[styles.modalDesc, { color: COLORS[theme].primary }]}>
-              This will deactivate your account. You can reactivate it later by
-              contacting support.
+             {siteDetails?.delete_confirmation}
             </Text>
 
             <View style={styles.modalActions}>
@@ -141,7 +146,7 @@ const AccountManage = () => {
                 onPress={handleDeactivate}
               >
                 <Text style={{ color: COLORS[theme].background }}>
-                  Yes, Deactivate
+                Confirm Deletion
                 </Text>
               </TouchableOpacity>
             </View>
@@ -151,14 +156,11 @@ const AccountManage = () => {
     </GestureHandlerRootView>
   );
 };
-
 export default AccountManage;
-
 const styles = StyleSheet.create({
   container: {
     padding: wp(4),
   },
-
   loader: {
     flex: 1,
     justifyContent: 'center',
