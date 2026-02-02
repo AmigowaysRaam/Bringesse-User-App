@@ -72,10 +72,14 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires camera access to capture photos for profile verification and documentation.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>We need your location to track your position during deliveries and provide accurate navigation assistance.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>We need your location to show your position on the map and help you navigate to delivery locations.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app requires photo library access to select images for profile and delivery proof uploads.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
