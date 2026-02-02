@@ -15,6 +15,10 @@ import { fetchData } from '../../api/api';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { poppins } from '../../resources/fonts';
+import {CopilotStep,walkthroughable} from 'react-native-copilot';
+
+const WalkthroughableView = walkthroughable(View);
+
 const { width } = Dimensions.get('window');
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental &&
@@ -49,7 +53,16 @@ const getTabIcon = (routeName, isFocused, colorScheme, cartCount, activeRoute) =
       );
 
     case 'T-Social':
-      return <MaterialIcon name="fire-truck" color={iconColor} size={wp(6)} />;
+      return <CopilotStep 
+               text='Need to move something?
+               Use Transport to deliver your own items—just select where to pick up and where to drop off,
+               and a driver will take care of the rest.'
+               order={3}
+               name='transport'>
+                <WalkthroughableView>
+                    <MaterialIcon name="fire-truck" color={iconColor} size={wp(6)} />
+                </WalkthroughableView>
+            </CopilotStep>;
 
     case 'More':
       return <MaterialIcon name="person" color={iconColor} size={wp(6)} />;

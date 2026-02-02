@@ -546,7 +546,7 @@ export default function CartList({ route }) {
     >
       <HeaderBar title={`${cdata?.storeDetails?.name ? cdata?.storeDetails?.name : ''}` || 'My Cart'} subMenu={cdata?.storeDetails?.address || ''} showBackArrow={showBackArrow}
         showRightArrow={"cart"}
-        onRightArrowPress={() => navigation.navigate('OrdersHistory')}
+        onRightArrowPress={() => navigation.navigate('OrdersHistory')} wishlist
       />
       {!loading && items.length === 0 ? (
         <View style={styles.centerScreen}>
