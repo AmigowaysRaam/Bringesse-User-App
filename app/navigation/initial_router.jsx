@@ -29,6 +29,7 @@ import QuickShare from '../screens/QuickShare';
 import CustomerSupport from '../screens/CustomerSupport';
 import BookingsList from '../screens/BookingsList';
 import AccountManage from '../screens/AccountManage';
+import WishlistScreen from '../screens/WishlistScreen';
 
 const Stack = createNativeStackNavigator();
 const MyTheme = {
@@ -79,6 +80,7 @@ function InitialRouter() {
         <Stack.Screen name="QuickShare" component={QuickShare} />
         <Stack.Screen name="CustomerSupport" component={CustomerSupport} />
         <Stack.Screen name="AccountManage" component={AccountManage} />
+        <Stack.Screen name='Wishlist' component={WishlistScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );

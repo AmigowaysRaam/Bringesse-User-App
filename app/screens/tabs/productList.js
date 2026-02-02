@@ -1,12 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState ,useContext } from "react";
 import {
-  View, Text, StyleSheet, Image, TouchableOpacity, ScrollView,
-  TextInput,
-  FlatList, KeyboardAvoidingView, ActivityIndicator, ToastAndroid,
-  Pressable,
-  Alert,
-  RefreshControl,
-} from "react-native";
+  View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, TextInput,
+  FlatList, KeyboardAvoidingView, ActivityIndicator, ToastAndroid,Pressable,Alert,RefreshControl,} from "react-native";
 import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import UseProfileHook from "../../hooks/profile-hooks";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -22,12 +17,12 @@ import ProductImageCarousel from "../ProductImageCarousel";
 import LinearGradient from "react-native-linear-gradient";
 import LoaderView from "../../components/loader";
 import LoaderCart from "../LoaderCart";
+import { WishlistContext } from "../../context/WishlistContext";
 
 const ProductListScreen = ({ route }) => {
   const navigation = useNavigation();
   const { storeId } = route.params;
   const [refreshing, setRefreshing] = useState(false);
-
   const [storeData, setStoreData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [cartItems, setCartItems] = useState({});
@@ -39,6 +34,7 @@ const ProductListScreen = ({ route }) => {
   const profileDetails = useSelector(state => state.Auth.profileDetails);
   const accessToken = useSelector(state => state.Auth.accessToken);
   const { theme } = useTheme();
+  const { isWishlisted, removeFromWishlist, addToWishlist } = useContext(WishlistContext);
   useEffect(() => {
     getStoreDetails();
   }, []);
@@ -97,7 +93,6 @@ const ProductListScreen = ({ route }) => {
     });
     setCartSummary({ totalItems, totalPrice });
   };
-
   const addToCart = async (item, variant, variantIndex) => {
     if (!profileDetails?.primary_address) {
       navigation.navigate('SelectLocation');
@@ -122,9 +117,7 @@ const ProductListScreen = ({ route }) => {
         },
         body: JSON.stringify(payload),
       });
-
       const data = await response.json();
-
       if (data?.status) {
         const cartKey = `${item.item_id}_${variantIndex}`;
         setCartItems(prev => {
@@ -144,7 +137,6 @@ const ProductListScreen = ({ route }) => {
       } else ToastAndroid.show(data.message, ToastAndroid.SHORT);
     } catch { }
   };
-
   const increaseQty = async (cartKey) => {
     if (!cartItems[cartKey]) return;
 
@@ -177,7 +169,6 @@ const ProductListScreen = ({ route }) => {
 
     } catch { }
   };
-
   const decreaseQty = async (cartKey) => {
     if (!cartItems[cartKey]) return;
     const item = cartItems[cartKey];
@@ -270,15 +261,15 @@ const ProductListScreen = ({ route }) => {
         <LoaderCart/>
       ) : (
         <View style={{ flex: 1, marginBottom: Object.keys(cartItems).length > 0 ? hp(10) : hp(1) }}>
-          <ScrollView showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: hp(5) }}
-            refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          >
             <FlatList
-              refreshing={refreshing}
+              data={filteredTopProducts}
+              keyExtractor={(item) => item.item_id.toString()}
+              numColumns={2}
+              columnWrapperStyle={{justifyContent:"space-between"}}
+               refreshing={refreshing}
               onRefresh={onRefresh}
+              contentContainerStyle={{ paddingBottom: hp(5) }}
+               showsVerticalScrollIndicator={false}
               ListEmptyComponent={() => (
                 <>
                   <Text style={[poppins.regular.h6, { color: COLORS[theme].primary, alignSelf: 'center', margin: hp(2) }]}>
@@ -293,10 +284,8 @@ const ProductListScreen = ({ route }) => {
                   )}
                 </>
               }
-              data={filteredTopProducts}
-              keyExtractor={(item) => item.item_id.toString()}
               renderItem={({ item }) => (
-                <Pressable style={[styles.productCard, {
+                <Pressable style={[styles.productCard, {width:'49%'
                 }]}
                   onPress={() => setselProdtedData(item)}
                 >
@@ -313,16 +302,33 @@ const ProductListScreen = ({ route }) => {
                       borderRadius: wp(2),
                     }]}
                   >
-                    {/* <Text>{JSON.stringify(item.variant_list)}</Text> */}
+     <TouchableOpacity style={styles.icon}
+    onPress={() =>
+    isWishlisted(item.item_id)
+      ? removeFromWishlist(item.item_id)
+      : addToWishlist({
+  ...item,
+  store_id: storeId,
+  image:item.image_url || item.image})
+
+  }
+ >
+                  <MaterialCommunityIcon
+    name={isWishlisted(item.item_id) ? "heart" : "heart-outline"}
+    size={wp(5)}
+    color={isWishlisted(item.item_id) ? "red" : "#333"}
+                              />
+                    </TouchableOpacity>
                     <View
                       style={{ flexDirection: "row" }}>
-                      <View style={{ flex: 1, marginLeft: wp(3), flexDirection: "row", justifyContent: "space-between" }}>
+                      <View style={{ flex: 1, marginLeft: wp(2), flexDirection: "row", justifyContent: "space-between" }}>
                         <View style={{ marginVertical: wp(2) }}>
                           <Text style={[styles.productName, {
                             color: COLORS[theme].textPrimary
-                          }]}>{item.name}</Text>
+                          }]} numberOfLines={1}>{item.name.length > 15 ? item.name.substring(0, 8) + '...' : item.name}</Text>
+                          {/* <Text>{JSON.stringify(item,null,2)}</Text> */}
                         </View>
-                        <View>
+                        <View style={{position:"absolute", marginLeft:wp(34),zIndex:10}}>
                           <MaterialCommunityIcon name="chevron-right" size={wp(8)} color={COLORS[theme].textPrimary} />
                         </View>
                       </View>
@@ -337,9 +343,14 @@ const ProductListScreen = ({ route }) => {
                         const inCart = cartItems[cartKey];
                         return (
                           <>
-                            <View style={[styles.variantCard, {
-                              flex: 1, margin: wp(1),
-                            }]}>
+                            <View style={[styles.variantCard,{flex: 1}]}>
+                               {variant.offer_available === "true" && (
+                                    <Text
+                                      style={[styles.off ,{color:'green',fontWeight:900}]}
+                                    >
+                                      {variant?.offer_percentage} OFF
+                                    </Text>
+                                )} 
                               <ProductImageCarousel variant={variant} video={item.videoUrl} images={item.image_url} theme={theme} />
                               <View style={{ flexDirection: "row", justifyContent: "space-between", width: wp(80), marginVertical: wp(2) }}>
                                 <View>
@@ -376,33 +387,14 @@ const ProductListScreen = ({ route }) => {
                                       style={{
                                         fontSize: 14,
                                         fontWeight: "bold",
-                                        color: COLORS[theme].textPrimary
-                                      }}
+                                        color: COLORS[theme].textPrimary }}
                                     >
                                       ₹{variant.totalAmount}
                                     </Text>
                                   )}
                                 </View>
-                                {variant.offer_available === "true" && (
-                                  <View style={{
-                                    backgroundColor: "#E5F9F5",
-                                    paddingHorizontal: 6,
-                                    paddingVertical: 2,
-                                    borderRadius: 4,
-                                    alignSelf: "flex-start",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    borderWidth: 1,
-                                    borderColor: "green"
-                                  }}>
-                                    <Text
-                                      style={[poppins.regular.h7, { color: "green", fontWeight: "900" }]}
-                                    >
-                                      {variant?.offer_percentage} OFF
-                                    </Text>
-                                  </View>
-                                )}
                               </View>
+
                               <View>
                                 {
                                   variant["itemOutofStock "] == '1'
@@ -433,11 +425,10 @@ const ProductListScreen = ({ route }) => {
                                         style={[styles.addButton, {
                                           borderColor: COLORS[theme].textPrimary,
                                           backgroundColor: COLORS[theme].background,
-                                          flexDirection: "row", justifyContent: "space-around", alignItems: "center"
-                                        }]}
+                                          flexDirection: "row",justifyContent:"center", alignItems: "center" }]}
                                       >
                                         <Text style={[poppins.semi_bold.h7, styles.addButtonText, {
-                                          color: COLORS[theme].primary, lineHeight: wp(10)
+                                          color: COLORS[theme].primary, lineHeight: wp(9)
                                         }]}>Add to Cart
                                         </Text>
                                         <MaterialCommunityIcon size={wp(5)} name={'cart'} color={COLORS[theme].primary} />
@@ -453,7 +444,7 @@ const ProductListScreen = ({ route }) => {
                 </Pressable>
               )}
             />
-          </ScrollView>
+       
         </View>
       )
       }
@@ -499,20 +490,22 @@ const styles = StyleSheet.create({
     marginLeft: wp(2), marginTop: wp(2),
   }, productCard: {
     borderRadius: wp(2),
-    overflow: 'hidden',
-    margin: hp(1),
-    // borderRadius: wp(5), marginHorizontal: wp(1), padding: wp(3), 
+    marginBottom:hp(2),
+    // maxHeight:hp(100),
+    // overflow: 'hidden',
+    // margin: hp(1),
+    // borderRadius: wp(5), marginHorizontal: wp(1), padding: wp(3),
     borderWidth: wp(0.6), borderColor: "#ccc",
     // marginBottom: wp(2),
   }, productImage: {
     position: "relative", bottom: hp(0.5),
     marginBottom: wp(2),
-    width: wp(90), height: wp(40), borderRadius: wp(1), resizeMode: "contain",
+    width: wp(10), height: wp(40), borderRadius: wp(1), resizeMode: "contain",
   }, productName: {
-    fontSize: wp(4), fontWeight: "bold", color: "#000",
-    textTransform: "capitalize"
+    fontSize: wp(3.5), fontWeight: "bold", color: "#000",
+    textTransform: "capitalize",
   }, variantCard: {
-    padding: wp(2), borderRadius: wp(2), width: "100%", alignItems: "center",
+    padding: wp(2), borderRadius: wp(2), width: "100%",
     borderWidth: wp(0.1), borderColor: "#ccc",
   }, variantText: {
     fontSize: wp(3.2),
@@ -521,13 +514,16 @@ const styles = StyleSheet.create({
     fontSize: wp(3.5), fontWeight: "bold", color: "#009a44",
   },
   addButton: {
-    paddingHorizontal: hp(2), paddingVertical: wp(0.8), borderRadius: wp(2), marginVertical: wp(1), width: wp(50), borderWidth: wp(0.3)
-  }, addButtonText: {
+    paddingHorizontal: hp(0.6), paddingVertical: wp(0.1), borderRadius: wp(2), marginVertical: wp(1), 
+    width: wp(36), borderWidth: wp(0.3),
     textAlign: "center",
-  }, qtyRow: { flexDirection: "row", alignItems: "center", marginVertical: wp(2) },
+  }, 
+  addButtonText:{
+      alignItems:"center"
+  },qtyRow: { flexDirection: "row", alignItems: "center", marginVertical: wp(2) },
   qtyButton: {
-    backgroundColor: "#E6FAF8", paddingHorizontal: wp(4),
-    paddingVertical: wp(2), borderRadius: wp(1.5),
+    backgroundColor: "#E6FAF8", paddingHorizontal: wp(3),
+    paddingVertical: wp(1), borderRadius: wp(1.5),
   }, qtyButtonText: {
     color: "#009a44", fontSize: wp(5), fontWeight: "bold",
   },
@@ -553,4 +549,29 @@ const styles = StyleSheet.create({
     color: "#009a44",
     fontWeight: "700",
   },
+  icon:{
+    position: "absolute",
+    top:wp(12),
+    right: wp(2),
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: wp(1),
+    zIndex: 10,
+  },
+  off:{
+        position: "absolute",
+    top:wp(14),
+    right: wp(1),
+    zIndex: 10,
+    backgroundColor: "#E5F9F5",
+  paddingHorizontal: 6,
+     paddingVertical: 2,
+       borderRadius: wp(2),
+           alignSelf: "flex-start",
+         justifyContent: "center",
+        alignItems: "center",
+     borderWidth: 1,
+      borderColor: "green"                                  
+
+  }
 });

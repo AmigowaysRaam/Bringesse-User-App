@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../context/ThemeContext';
@@ -7,12 +7,15 @@ import { hp, wp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
 import { IMAGE_ASSETS } from '../resources/images';
 import { useNavigation } from '@react-navigation/native';
+import Icons from 'react-native-vector-icons/Ionicons';
+import { WishlistContext } from '../context/WishlistContext';
 
 const SearchContainer = ({ banner }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const navigation = useNavigation();
+  const {wishlistItems} = useContext(WishlistContext);
 
   useEffect(() => {
     const cycleCategories = (index) => {
@@ -34,6 +37,7 @@ const SearchContainer = ({ banner }) => {
   }
 
   return (
+    <View style={{flexDirection:'row'}}>
     <TouchableOpacity onPress={() => navigation.navigate('RevenueScreen')} style={[styles.card, { backgroundColor: COLORS[theme].background }]}>
       <View style={styles.userInfo}>
         <Image
@@ -48,11 +52,25 @@ const SearchContainer = ({ banner }) => {
         </View>
       </View>
     </TouchableOpacity>
+      <TouchableOpacity
+               onPress={()=>navigation.navigate('Wishlist')}
+               style={styles.rightButton}>
+                <Icons name='heart-outline'
+                 color={COLORS[theme].textPrimary}
+                  size={wp(6)}/>
+                  { wishlistItems.length > 0 &&
+                  <View style={styles.cartCountBadge}>
+                                <Text style={styles.cartCountText}>{wishlistItems.length}</Text>
+                              </View>
+}
+               </TouchableOpacity>
+         </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
+    width:"88%",
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -77,5 +95,20 @@ const styles = StyleSheet.create({
   userTextContainer: {
     justifyContent: 'center',
   },
+   rightButton: {
+   marginLeft:wp(92),
+   position:'absolute',
+   marginTop: wp(4)
+    },
+      cartCountBadge: {
+        position: 'absolute',
+        top: -wp(1.5), right: -wp(1.5),
+        backgroundColor: '#ff0000', borderRadius: wp(2.5),
+        width: wp(4), height: wp(4),
+        alignItems: 'center', justifyContent: 'center',
+      }, cartCountText: {
+        color: '#fff',
+        fontSize: wp(3),
+      }
 });
 export default SearchContainer;

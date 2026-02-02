@@ -1,5 +1,4 @@
 // ----------------- FIXED FULL HOME SCREEN WITH TOGGLE --------------------
-
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, StyleSheet, PermissionsAndroid,
@@ -26,6 +25,9 @@ import { poppins } from '../../../resources/fonts';
 import { hp, wp } from '../../../resources/dimensions';
 import CheckUserName from '../../CheckUserName';
 import CheckCartItems from '../../checkCartItems';
+import {walkthroughable,CopilotStep,useCopilot} from 'react-native-copilot'
+
+  const WalkthroughableView = walkthroughable(View);
 
 const HomeScreen = () => {
   const { theme } = useTheme();
@@ -41,6 +43,7 @@ const HomeScreen = () => {
   const profileDetails = useSelector(state => state.Auth.profileDetails);
   const navigation = useNavigation();
   const dispatch = useDispatch();
+
   const isInitialLoading = loading && !homePageData;
 
   //------------------ GET PERMISSION ------------------
@@ -55,6 +58,7 @@ const HomeScreen = () => {
           message: 'App needs access to your location.',
         }
       );
+      
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (err) {
       console.warn('Permission error:', err);
@@ -133,7 +137,12 @@ const HomeScreen = () => {
       if (data?.status === "true") {
         setHomePageData(data);
       } else {
-        AsyncStorage.clear();
+        await AsyncStorage.multiRemove([
+  'access_token',
+  'user_data',
+  'refresh_token',
+]);
+
         navigation.reset({ index: 0, routes: [{ name: "GetStartedScreen" }] });
       }
     } catch (err) {
@@ -171,6 +180,48 @@ const HomeScreen = () => {
     };
     loadData();
   }, [profileDetails, useCurrentLocation]);
+
+  // copilot start
+
+
+const { start } = useCopilot();
+
+
+const [copilotReady,setCopilotReady] = useState(false);
+useFocusEffect(
+  useCallback(() => {
+    let active = true;
+
+    const runCopilot = async () => {
+      if (!profile?.user_id) return;
+      if (!homePageData) return;
+      if (!copilotReady) return;
+
+      const key = `copilot_home_seen_${profile.user_id}`;
+      const seen = await AsyncStorage.getItem(key);
+
+      if (!seen && active) {
+        setTimeout(() => {
+          start(); // ✅ steps now exist
+        }, 500);
+
+        await AsyncStorage.setItem(key, 'true');
+      }
+    };
+
+    runCopilot();
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.user_id, homePageData, copilotReady])
+);
+
+useEffect(() => {
+  console.log('Copilot ready:', copilotReady);
+}, [copilotReady]);
+
+
   //------------------ ON REFRESH ------------------
   const onRefresh = async () => {
     setRefreshing(true);
@@ -196,6 +247,7 @@ const HomeScreen = () => {
         color: COLORS[theme].primary
       }]}>Get Store from Current Location</Text>
       <View style={{ width: wp(15.5), height: wp(8.5), borderWidth: wp(0.4), borderColor: "#ccc", alignItems: "center", borderRadius: wp(4) }}>
+         
         <Switch
           value={useCurrentLocation}
           onValueChange={setUseCurrentLocation}
@@ -229,18 +281,48 @@ const HomeScreen = () => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
-          renderItem={() => (
-            <>
-              <LocationToggle />
+          renderItem={() => {
+  // 🔥 mark UI ready ONLY once
+  if (!copilotReady) {
+    setTimeout(() => setCopilotReady(true), 0);
+  }
+
+  return (
+    <>
+      <CopilotStep
+        text="Turn on location to get nearby stores"
+        order={3}
+        name="location">
+        <WalkthroughableView>
+          <LocationToggle />
+        </WalkthroughableView>
+      </CopilotStep>
               <SearchContainer banner={homePageData} />
-              <CarouselData banner={homePageData} />
-              <CategoryList banner={homePageData} />
-              <StoreListData
-                banner={homePageData}
-                useCurrentLocation={useCurrentLocation}
-              />
-            </>
-          )}
+              <CarouselData banner={homePageData}/>
+      <CopilotStep
+        text="Search nearby stores"
+        order={1}
+        name="search">
+        <WalkthroughableView>
+           <CategoryList  banner={homePageData}/>
+        </WalkthroughableView>
+      </CopilotStep>
+      <CopilotStep
+        text="Browse stores"
+        order={2}
+        name="stores">
+        <WalkthroughableView>
+          <StoreListData
+            banner={homePageData}
+            useCurrentLocation={useCurrentLocation}
+          />
+        </WalkthroughableView>
+      </CopilotStep>
+     
+    </>
+  );
+}}
+
         />
       )}
       <FlashMessage position="top" />
