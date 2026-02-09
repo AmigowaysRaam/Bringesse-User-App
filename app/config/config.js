@@ -16,7 +16,8 @@ const useAuthHoc = HOC({
     refreshToken: null,
     siteDetails: {},          // <-- Added siteDetails here
     profileDetails: {},
-
+    categories:[],
+     selectedCategoryId:null,
   },
   dontReset: {
     TEST_API /* If you pass anything on don't reset it wont reset the particular state on setting to reset */,
@@ -40,7 +41,18 @@ const useAuthHoc = HOC({
             accessToken: action.payload.access_token,
             refreshToken: action.payload.refresh_token,
           };
-        
+
+            case "SET_CATEGORIES":
+      return {
+        ...state,
+        categories: action.payload,
+      };
+
+    case "SET_SELECTED_CATEGORY":
+      return {
+        ...state,
+        selectedCategoryId: action.payload,
+      };
 
       case 'SET_SITE_DETAILS':          // <-- New action to set site details
         return {

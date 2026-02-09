@@ -257,6 +257,7 @@ const MoreScreen = () => {
           <SectionItem icon="share-all-outline" navigation={navigation} label="Share & Connect" navigationPath='QuickShare' />
           {/* <SectionItem icon="face-agent" navigation={navigation} label="Customer Support" navigationPath='CustomerSupport' /> */}
            <SectionItem icon="face-agent" navigation={navigation} label="Account Management" navigationPath='AccountManage' />
+            {/* <SectionItem icon="face-agent" navigation={navigation} label="Category" navigationPath='Category'/> */}
           <ThemeSection />
           {/* <LangSection /> */}
           <LogoutSection profileD={profileD} accessToken={accessToken} />

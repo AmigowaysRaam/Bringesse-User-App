@@ -8,6 +8,8 @@ import { useTheme } from '../context/ThemeContext';
 import { COLORS } from '../resources/colors';
 import { wp, hp } from '../resources/dimensions';
 import { poppins } from '../resources/fonts';
+import { useDispatch } from 'react-redux';
+
 
 const CategoryCard = ({ item, onPress, theme }) => {
   return (
@@ -52,12 +54,35 @@ const CategoryCard = ({ item, onPress, theme }) => {
 const CategoryList = ({ banner }) => {
   const { theme } = useTheme();
   const navigation = useNavigation();
+  const dispatch = useDispatch();
 
   const handleCategoryPress = (item) => {
-    navigation.navigate('CategoryDetails', {
-      categoryId: item.category_id,
-    });
-  };
+  // store full category list
+  dispatch({
+    type: "SET_CATEGORIES",
+    payload: banner.category,
+  });
+
+  //  store selected category id
+  dispatch({
+    type: "SET_SELECTED_CATEGORY",
+    payload: item.category_id,
+  });
+
+  //  navigate (NO params)
+// navigation.navigate("CategoryDetails", {
+//   categoryId: item.category_id,
+// });
+
+navigation.navigate('CategoryDetails', {
+  categories: banner.category,   // ✅ Make sure this is correct
+  selectedCategoryId: item.category_id,
+  categoryId: item.category_id,
+});
+
+
+};
+
   if (!Array.isArray(banner?.category) || banner.category.length === 0) {
     return null;
   }

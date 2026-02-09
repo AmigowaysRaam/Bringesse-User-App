@@ -30,6 +30,7 @@ import CustomerSupport from '../screens/CustomerSupport';
 import BookingsList from '../screens/BookingsList';
 import AccountManage from '../screens/AccountManage';
 import WishlistScreen from '../screens/WishlistScreen';
+import CategoryScreen from '../screens/tabs/productList/categoryTab';
 
 const Stack = createNativeStackNavigator();
 const MyTheme = {
@@ -81,6 +82,7 @@ function InitialRouter() {
         <Stack.Screen name="CustomerSupport" component={CustomerSupport} />
         <Stack.Screen name="AccountManage" component={AccountManage} />
         <Stack.Screen name='Wishlist' component={WishlistScreen}/>
+        <Stack.Screen name='Category' component={CategoryScreen}/>
       </Stack.Navigator>
     </NavigationContainer>
   );
