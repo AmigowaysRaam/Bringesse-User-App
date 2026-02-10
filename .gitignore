@@ -1,7 +1,7 @@
 # Node.js
 node_modules/
 .yarn/
-
+yarn.lock/
 # React Native
 android/.gradle/
 android/app/build/

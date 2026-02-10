@@ -4,6 +4,7 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
   BackHandler,
   Alert,
+  ToastAndroid,Modal
 } from 'react-native';
 import {
   GestureHandlerRootView,
@@ -57,6 +58,15 @@ const OrdersScreen = () => {
     { key: 'book', title: 'Book' },
     { key: 'history', title: 'History' },
   ];
+  const [alertModalVisible, setAlertModalVisible] = useState(false);
+const [alertModalData, setAlertModalData] = useState({
+  title: '',
+  message: '',
+  type: '' // optional: short | warning | etc.
+});
+const [confirmVisible, setConfirmVisible] = useState(false);
+const [onProceed, setOnProceed] = useState(null);
+
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
@@ -122,7 +132,7 @@ const OrdersScreen = () => {
         ...prev,
         pickupLocation: { location: address, lat: location.latitude, lon: location.longitude },
       }));
-    } else {
+    } else{
       setFormValues((prev) => ({
         ...prev,
         dropLocation: { location: address, lat: location.latitude, lon: location.longitude },
@@ -161,50 +171,109 @@ const OrdersScreen = () => {
     }
   };
 
+  const getDistanceInKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = value => (value * Math.PI) / 180;
 
-  const getDriversData = async () => {
-    setLoading(true);  // Show loader when fetching data
-    if (!formValues?.vehicleCategoryId || !formValues?.vehicleTypeId || !formValues?.pickupLocation?.lat) {
-      setLoading(false);  // Show loader when fetching data
-      showMessage({
-        message: 'All Fields Required',
-        type: 'danger',
-      });
-      return
-    }
-    let payLoad = {
-      user_id: profile?.user_id,
-      vehicle_id: formValues?.vehicleTypeId,
-      category_id: formValues?.vehicleCategoryId,
-      category_name: formValues?.vehicleCategory,
-      currentLoc: formValues?.pickupLocation?.location,
-      current_lat: formValues?.pickupLocation?.lat,
-      current_lon: formValues?.pickupLocation?.lon,
-      drop_location: formValues?.dropLocation?.location ?? '',
-      drop_lat: formValues?.dropLocation?.lat,
-      drop_lon: formValues?.dropLocation?.lon ?? '',
-    }
-    try {
-      const data = await fetchData('getdrivers', 'POST', payLoad, null);
-      if (data?.available_drivers) {
-        setDriverInfo(data);
-        setConfirmModal(data?.available_drivers);
-        showMessage({
-          message: data.message,
-          type: 'info',
-        });
-      } else {
-        showMessage({
-          message: data.message,
-          type: 'danger',
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching drivers:', error);
-    } finally {
-      setLoading(false);
-    }
+  const R = 6371; // Earth radius in KM
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// const AlertModal = ()=>{}
+
+const handleContinueBooking = async () => {
+  setLoading(true);
+
+  const pickup = formValues?.pickupLocation;
+  const drop = formValues?.dropLocation;
+
+  let payLoad = {
+    user_id: profile?.user_id,
+    vehicle_id: formValues?.vehicleTypeId,
+    category_id: formValues?.vehicleCategoryId,
+    category_name: formValues?.vehicleCategory,
+    currentLoc: pickup?.location,
+    current_lat: pickup?.lat,
+    current_lon: pickup?.lon,
+    drop_location: drop?.location ?? '',
+    drop_lat: drop?.lat,
+    drop_lon: drop?.lon ?? '',
   };
+
+  try {
+    const data = await fetchData('getdrivers', 'POST', payLoad, null);
+
+    if (data?.available_drivers) {
+      setDriverInfo(data);
+      setConfirmModal(true);
+      showMessage({ message: data.message, type: 'info' });
+    } else {
+      showMessage({ message: data.message, type: 'danger' });
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    setLoading(false);
+  }
+};
+const getDriversData = async (prev) => {
+  setLoading(true);
+
+  const pickup = formValues?.pickupLocation;
+  const drop = formValues?.dropLocation;
+
+  if (!formValues?.vehicleCategoryId || !formValues?.vehicleTypeId || !pickup?.lat) {
+    setLoading(false);
+    showMessage({ message: 'All Fields Required', type: 'danger' });
+    return;
+  }
+
+  if (enableDropLocation && drop?.lat) {
+    const distanceKm = getDistanceInKm(
+      pickup.lat,
+      pickup.lon,
+      drop.lat,
+      drop.lon
+    );
+    if (distanceKm < 0.5) {
+      setLoading(false);
+      setAlertModalData({
+        title: 'Distance Too Short',
+        message: 'Minimum distance between pickup and drop must be 500 meters',
+      });
+      setAlertModalVisible(true);
+      setFormValues(({ dropLocation: { ...prev }}))
+      return;
+    }
+
+    // Confirmation
+    if (distanceKm >= 0.5 && distanceKm < 1) {
+      setLoading(false);
+      setAlertModalData({
+    title: 'Distance Below 1km',
+    message:
+      'Your distance between pickup and drop is under 1km. Are you ok with this transport?',
+    type: 'warning'
+  });
+      setOnProceed(() => handleContinueBooking);
+      setConfirmVisible(true);
+      return;
+    }
+  }
+
+  handleContinueBooking();
+};
+
   useFocusEffect(
     useCallback(() => {
       getHomePageData();
@@ -469,6 +538,50 @@ const OrdersScreen = () => {
         onDismiss={() => setLocationModalVisible(false)}
         onConfirm={handleLocationConfirm}
       />
+      <Modal visible={alertModalVisible} transparent animationType="fade">
+  <View style={styles.overlay}>
+    <View style={styles.modalBox}>
+      <Text style={styles.title}>{alertModalData.title}</Text>
+      <Text style={styles.message}>{alertModalData.message}</Text>
+ <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+      <TouchableOpacity
+        style={styles.proceedBtn}
+        onPress={() => setAlertModalVisible(false)}
+      >
+        <Text style={styles.proceedText}>OK</Text>
+      </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+      <Modal visible={confirmVisible} transparent animationType="fade">
+  <View style={styles.overlay}>
+    <View style={styles.modalBox}>
+      <Text style={styles.title}>Distance Below 1km</Text>
+      <Text style={styles.message}>
+        Your distance between pickup and drop is under 1km.
+        Are you sure you want to proceed?
+      </Text>
+
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
+        <TouchableOpacity onPress={() => setConfirmVisible(false)}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            setConfirmVisible(false);
+            onProceed && onProceed();
+          }}
+        >
+          <Text style={styles.proceedText}>Proceed</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+
     </GestureHandlerRootView>
   );
 };
@@ -510,5 +623,24 @@ const styles = StyleSheet.create({
   activeTabText: {
     fontWeight: 'bold',
   },
+  buttonRow: {
+    alignItems: 'flex-end',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+  },
+  title: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  message: { fontSize: 14, marginBottom: 20 },
+  proceedText: { color: '#007AFF', fontWeight: '600', marginLeft: 20 },
+  cancelText: { color: '#999', marginRight: 20 },
 });
 export default OrdersScreen;
